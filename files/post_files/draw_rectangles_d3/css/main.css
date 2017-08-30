@@ -4,3 +4,8 @@
   fill-opacity: 0;
   stroke-opacity: 0.5;
 }
+
+.container-svg {
+	display: block;
+    margin: auto;
+}
