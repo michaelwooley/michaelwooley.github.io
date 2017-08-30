@@ -47,6 +47,8 @@
     </div>
 
     {% include analytics.html %}
+    
+    <!-- Add all custom js to bottom -->
     {% for js in page.customjs %}
   		<script type="text/javascript" src="{{ js }}"></script>
   	{% endfor %}
