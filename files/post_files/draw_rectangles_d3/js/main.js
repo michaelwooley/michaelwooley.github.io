@@ -3,7 +3,7 @@
 **********/
 var h = 250,
   w = 250;
-var svg = d3.select('div.sample-div')
+var svg = d3.select('.sample-div')
   .append('svg')
   .attr('height', h)
   .attr('width', w);
