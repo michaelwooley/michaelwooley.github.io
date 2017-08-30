@@ -11,7 +11,12 @@
 
     <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/style.css" />
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} - {{ site.description }}" href="{{ site.baseurl }}/feed.xml" />
-
+	
+    <!-- Custom CSS -->
+    {% for css in page.customcss %}
+    	<link rel="stylesheet" type="text/css" href="{{ css }}">
+    {% endfor %}
+    
     <!-- Created with Jekyll Now - http://github.com/barryclark/jekyll-now -->
   <!-- Custom JavaScript files set in YAML front matter -->
   </head>
@@ -49,9 +54,6 @@
     {% include analytics.html %}
     
     <!-- Add all custom css and js to bottom -->
-    {% for css in page.customcss %}
-    	<link rel="stylesheet" type="text/css" href="{{ css }}">
-    {% endfor %}
     {% for js in page.customjs %}
   		<script type="text/javascript" src="{{ js }}"></script>
   	{% endfor %}
