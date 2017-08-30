@@ -6,7 +6,8 @@ var h = 250,
 var svg = d3.select('.sample-div')
   .append('svg')
   .attr('height', h)
-  .attr('width', w);
+  .attr('width', w)
+  .attr('class', 'display-svg');
 // Border Rectangle
 svg.append('rect')
   .attr('height', h)
