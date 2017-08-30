@@ -48,7 +48,10 @@
 
     {% include analytics.html %}
     
-    <!-- Add all custom js to bottom -->
+    <!-- Add all custom css and js to bottom -->
+    {% for css in page.customcss %}
+    	<link rel="stylesheet" type="text/css" href="{{ css }}">
+    {% endfor %}
     {% for js in page.customjs %}
   		<script type="text/javascript" src="{{ js }}"></script>
   	{% endfor %}
