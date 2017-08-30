@@ -2,6 +2,10 @@
 layout: post
 title: Making bounding boxes with d3.js
 comments: true
+published: true
+customjs:
+  - 'https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js'
+  - 'https://michaelwooley.github.io/files/test/test.js'
 ---
 
 This post kicks off a series in which I will be creating a UI for ...
@@ -10,7 +14,7 @@ My goal in this post will be rather modest: we're going to make a web page using
 
 At the end of this, we're going to have something like this:
 
-<script async src="//jsfiddle.net/wmwooley/39abzhus/embed/result/?bodyColor=white&menuColor=white&fontColor=black"></script>
+<div class='test-div'></div>
 
 _Note:_ I'm going to do the "jsfiddle" version of the code, which means that I'm going to skip over some of the setup involved in linking stylesheets and javascript to the main HTML file and the like. It should all run in jsfiddle, however.
 
@@ -239,13 +243,3 @@ var end = function() {
      console.log(r.node().getBBox());
 }
 ```
-
-
-
-
-
-
-
-
-
-
