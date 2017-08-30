@@ -5,7 +5,7 @@ comments: true
 published: true
 customjs:
   - 'https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js'
-  - 'https://michaelwooley.github.io/files/test/test.js'
+  - 'https://michaelwooley.github.io/files/js/test.js'
 ---
 
 This post kicks off a series in which I will be creating a UI for ...
