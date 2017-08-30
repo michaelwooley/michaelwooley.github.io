@@ -5,7 +5,7 @@
   stroke-opacity: 0.5;
 }
 
-.container-svg {
-	display: block;
-    margin: auto;
+.svg-display {
+ 	display: block;
+  	margin: auto;
 }
