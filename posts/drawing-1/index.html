@@ -1,0 +1,526 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - Drawing With d3.js Part 1: Rectangles</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+	
+	    <link rel="stylesheet" href=/posts/drawing-1/main.css>
+	
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/drawing-1/">Drawing With d3.js Part 1: Rectangles</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 5, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">d3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/tablereader">TableReader</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>In this post I am going to take a first step towards a sort of drawing app with
+the <code>d3.js</code> library.<label for="point-of-this" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="point-of-this" class="margin-toggle"/>
+<span class="marginnote">While there is a larger point to this little project, I&rsquo;m not going to get into it right now. By the end of this series the purpose will come into focus.</span>
+
+By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. In particular, we&rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture. Here&rsquo;s what we&rsquo;ll be working towards:</p>
+
+<figure>
+<label for="main-sample" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample" class="margin-toggle"/>
+<span class="marginnote">Click within the box to add a rectangle. See the full sample code at this  <a href="https://gist.github.com/michaelwooley/b095fa7ce0e11d771dcb3f035fda1f07">gist</a>.</span>
+<div class="sample-div"></div>
+</figure>
+
+
+<p>There are going to be two main steps today. First, we&rsquo;ll set up an object that will serve as our &ldquo;canvas&rdquo; going forward. Then, we&rsquo;ll add some methods to the canvas to add the ability to add rectangles.</p>
+
+<h2 id="the-svgcanvas-object:9d37e1981a24436f5fb50482f9491a95">The <code>SVGCanvas</code> Object</h2>
+
+<p>Let&rsquo;s start out by making an object&ndash;call it <code>SVGCanvas</code>&ndash;that will both make a &ldquo;drawing canvas&rdquo; and provide a foundation for adding additional functionality at a later point in time.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">At the risk of introducing some ambiguity into the discussion, I will often speak of the &ldquo;canvas&rdquo; when discussing the object that will be drawn upon. However, be aware that this canvas will be SVG-based. I will not be using the HTML <a href="https://www.w3schools.com/graphics/canvas_intro.asp">Canvas element</a> at all in what follows.</span> 
+</p>
+
+<p>To be precise, right now we&rsquo;re going to make an object constructor. Here&rsquo;s the starter code:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span> <span style="color: #008000; font-weight: bold">function</span> SVGCanvas(options) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">/*</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span><span style="color: #408080; font-style: italic">   *  An SVG-based drawing app.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span><span style="color: #408080; font-style: italic">   *  Input: </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span><span style="color: #408080; font-style: italic">   *   - options: An object consisting of:</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span><span style="color: #408080; font-style: italic">   *    - h: The height of the canvas (default: 250px).</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span><span style="color: #408080; font-style: italic">   *    - w: The width of the canvas (default: 250px).</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span><span style="color: #408080; font-style: italic">   *    - addTo: CSS Selector for element on which to add canvas (default: &#39;body&#39;).</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span><span style="color: #408080; font-style: italic">   *    - addBorderRect: (bool) Add a border around the canvas (default: true).</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span><span style="color: #408080; font-style: italic">   *  Returns: An SVG object contained in the `addTo` DOM element.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span><span style="color: #408080; font-style: italic">  */</span> 
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>  <span style="color: #408080; font-style: italic">// Define the global SVG options</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>  <span style="color: #008000; font-weight: bold">this</span>.options <span style="color: #666666">=</span> options <span style="color: #666666">||</span> {};
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>  <span style="color: #008000; font-weight: bold">this</span>.options.h <span style="color: #666666">=</span> options.h <span style="color: #666666">||</span> <span style="color: #666666">250</span>; 
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>  <span style="color: #008000; font-weight: bold">this</span>.options.w <span style="color: #666666">=</span> options.w <span style="color: #666666">||</span> <span style="color: #666666">250</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>  <span style="color: #008000; font-weight: bold">this</span>.options.addTo <span style="color: #666666">=</span> options.addTo <span style="color: #666666">||</span> <span style="color: #BA2121">&#39;body&#39;</span>; 
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>  <span style="color: #008000; font-weight: bold">this</span>.options.addBorderRect <span style="color: #666666">=</span> options.addBorderRect <span style="color: #666666">||</span> <span style="color: #008000; font-weight: bold">true</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>  <span style="color: #408080; font-style: italic">// Canvas</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>  <span style="color: #408080; font-style: italic">//// Make the main container SVG </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>  <span style="color: #008000; font-weight: bold">this</span>.svg <span style="color: #666666">=</span> d3.select(<span style="color: #008000; font-weight: bold">this</span>.options.addTo)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>    .append(<span style="color: #BA2121">&#39;svg&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">24 </span>    .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.h)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">25 </span>    .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.w)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">26 </span>    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;display-svg&#39;</span>);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">27 </span>  <span style="color: #408080; font-style: italic">//// Add border if requested</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">28 </span>  <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #008000; font-weight: bold">this</span>.options.addBorderRect) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">29 </span>    <span style="color: #008000; font-weight: bold">this</span>.svg.append(<span style="color: #BA2121">&#39;rect&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">30 </span>      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.h)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">31 </span>      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.w)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">32 </span>      .attr(<span style="color: #BA2121">&#39;stroke&#39;</span>, <span style="color: #BA2121">&#39;black&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">33 </span>      .attr(<span style="color: #BA2121">&#39;stroke-width&#39;</span>, <span style="color: #666666">4</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">34 </span>      .attr(<span style="color: #BA2121">&#39;opacity&#39;</span>, <span style="color: #666666">0.25</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">35 </span>      .attr(<span style="color: #BA2121">&#39;fill-opacity&#39;</span>, <span style="color: #666666">0.0</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">36 </span>      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;border-rect&#39;</span>);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">37 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">38 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">39 </span>  <span style="color: #408080; font-style: italic">// More to come...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">40 </span>}
+</pre></div>
+
+
+<p>A lot of this is important-but-mundane boilerplate. The constructor takes as an argument an <code>options</code> object, which specifies different options related to the dimensions and placement of the object in the DOM. A final option specifies whether a border should be added to the canvas, which helps users see where it is valid to draw.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">If we just add an <code>&lt;svg&gt;</code> element to the DOM and nothing else there will just be blank space.</span> 
+ That takes care of lines 1-18.</p>
+
+<p>The code beginning in line 22 creates the canvas in the form of an <code>&lt;svg&gt;</code> element. This is also the first time that we&rsquo;ve encountered d3 in the code.</p>
+
+<hr />
+
+<h3 id="aside-basic-d3-js:9d37e1981a24436f5fb50482f9491a95">Aside: Basic <code>d3.js</code></h3>
+
+<p><label for="d3-version" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="d3-version" class="margin-toggle"/>
+<span class="marginnote">I will be using <a href="https://github.com/d3/d3/wiki">d3 v4.0</a>. The API documentation can be found <a href="https://github.com/d3/d3/blob/master/API.md">here</a>.</span>
+Here&rsquo;s a quick run-down of the basic pattern that we follow when creating elements with d3:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">var</span> div <span style="color: #666666">=</span> 			<span style="color: #408080; font-style: italic">// Define a variable in javascript called &quot;div&quot;</span>
+    d3.select(<span style="color: #BA2121">&#39;div.test&#39;</span>)	<span style="color: #408080; font-style: italic">// Select the first div element with class &quot;test&quot;.</span>
+				<span style="color: #408080; font-style: italic">// 	This element must already exist in the DOM.</span>
+    .append(<span style="color: #BA2121">&#39;div&#39;</span>)		<span style="color: #408080; font-style: italic">// Add/&quot;append&quot; a &lt;div&gt; element to the selected element</span>
+				<span style="color: #408080; font-style: italic">// 	This element is nested in the selected div.</span>
+    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;container&#39;</span>) <span style="color: #408080; font-style: italic">// Add an attribute to the element.</span>
+				<span style="color: #408080; font-style: italic">// 	class=&quot;container&quot;</span>
+    .attr(<span style="color: #BA2121">&#39;title&#39;</span>, <span style="color: #BA2121">&#39;Test Div!&#39;</span>) <span style="color: #408080; font-style: italic">// Add another attribute: chain them on.</span>
+				<span style="color: #408080; font-style: italic">// 	title=&quot;Test Div!&quot;</span>
+    .style(<span style="color: #BA2121">&#39;float&#39;</span>, <span style="color: #BA2121">&#39;left&#39;</span>)	<span style="color: #408080; font-style: italic">// Add inline styling to the element. </span>
+				<span style="color: #408080; font-style: italic">// 	style=&quot;float: left&quot;</span>
+    .style(<span style="color: #BA2121">&#39;position&#39;</span>, <span style="color: #BA2121">&#39;fixed&#39;</span>) <span style="color: #408080; font-style: italic">// You can also chain styling.</span>
+    ;				<span style="color: #408080; font-style: italic">// 	style=&quot;float: left; position: fixed&quot;</span>
+
+div.append(<span style="color: #BA2121">&#39;svg&#39;</span>);		<span style="color: #408080; font-style: italic">// Once we define a variable for the element we</span>
+				<span style="color: #408080; font-style: italic">// 	can skip the d3.select() step.</span>
+				<span style="color: #408080; font-style: italic">// Here we nest an &lt;svg&gt; element in the </span>
+				<span style="color: #408080; font-style: italic">//	newly-created div. We could add more </span>
+				<span style="color: #408080; font-style: italic">//	attributes and styling as above.</span>
+</pre></div>
+
+
+<p>Suppose that our original HTML looked like this:
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">div</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;test&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">div</span>&gt;
+</pre></div>
+</p>
+
+<p>Once we run the above script it will look like this:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">div</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;test&quot;</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">div</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;container&quot;</span> <span style="color: #7D9029">title</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;Test Div!&quot;</span> <span style="color: #7D9029">style</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;float: left; position: fixed;&quot;</span>&gt;
+    &lt;<span style="color: #008000; font-weight: bold">svg</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">svg</span>&gt;
+  &lt;/<span style="color: #008000; font-weight: bold">div</span>&gt;
+&lt;/<span style="color: #008000; font-weight: bold">div</span>&gt;
+</pre></div>
+</p>
+
+<p>In short, d3.js provides an easy way of altering the DOM. There is a lot more to d3.js than this. However, this simple select-append pattern will turn out to be quite powerful.</p>
+
+<hr />
+
+<p><figure>
+<label for="step-1" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="step-1" class="margin-toggle"/>
+<span class="marginnote">
+    <div class="step-1"></div>
+    Our canvas: a black-ish square that doesn&rsquo;t do anything (yet).
+</span>
+</figure>
+</p>
+
+<p>Returning to the <code>SVGCanvas</code> constructor codeblock we can see that an svg element is appended to the DOM in lines 22-26. We define the parent element, height, and width using the options that were just defined. Lines 28-36 then append an svg <code>&lt;rect&gt;</code> element to the SVG that was just created. This is our border.</p>
+
+<p>Okay, that&rsquo;s it for the canvas. At this point we just have a black-ish square.</p>
+
+<h2 id="adding-rectangles:9d37e1981a24436f5fb50482f9491a95">Adding Rectangles</h2>
+
+<p>Now that we have our canvas in place we can start to add interactive elements. The first thing that we&rsquo;re going to do is make it possible to create a rectangle via a click-and-drag gesture.</p>
+
+<p>To be specific, we want to implement the following behavior:</p>
+
+<ol>
+<li>When the user clicks (i.e. <code>mousedown</code>/<code>start</code>) on the svg element a <code>&lt;rect&gt;</code><em>-angle</em> element is created in the svg.</li>
+<li>While the user is still holding down the mouse (i.e. <code>drag</code>): Moving the mouse causes the rectangle to expand and contract. One corner of the rectangle remains at the point of the initial click while the opposite diagonal corner follows the mouse.</li>
+<li>When the user releases the click (i.e. <code>mouseup</code>/<code>end</code>) the rectangle remains in place.</li>
+</ol>
+
+<p>Luckily, d3 makes it fairly easy to do this sort of thing. Here is the plan: First, we&rsquo;re going to create three methods corresponding to the three steps below. Then, we&rsquo;re going to add a <em>drag event listener</em> to the svg element that calls each of the three methods whenever the computer registers a click-and-drag gesture.</p>
+
+<p>I&rsquo;m going to work backwards through these two steps.</p>
+
+<h3 id="drag-event-listener:9d37e1981a24436f5fb50482f9491a95">Drag Event Listener</h3>
+
+<p>We&rsquo;re going to alter the constructor for the <code>SVGCanvas</code> element to add event listeners. This is another area where d3 excels. Here&rsquo;s a snippet of the constructor code:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> SVGCanvas(options) {
+  <span style="color: #408080; font-style: italic">// ...Previous code...  </span>
+    
+  <span style="color: #408080; font-style: italic">// Rectangles</span>
+  <span style="color: #408080; font-style: italic">//// Current Rectangle</span>
+  <span style="color: #008000; font-weight: bold">this</span>.Rect <span style="color: #666666">=</span> {<span style="color: #BA2121">&#39;r&#39;</span><span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">null</span>, <span style="color: #BA2121">&#39;x0&#39;</span><span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">null</span>, <span style="color: #BA2121">&#39;y0&#39;</span><span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">null</span>}; 
+  <span style="color: #408080; font-style: italic">//// Collection of all shapes</span>
+  <span style="color: #008000; font-weight: bold">this</span>.Shapes <span style="color: #666666">=</span> []; 
+  
+  <span style="color: #408080; font-style: italic">// Actions/Listeners</span>
+  <span style="color: #408080; font-style: italic">//// Methods for adding rectangles</span>
+  <span style="color: #008000; font-weight: bold">this</span>.makeAddRect();
+   
+  <span style="color: #408080; font-style: italic">// On drag: call addRect methods</span>
+  <span style="color: #008000; font-weight: bold">this</span>.svg.call(
+    d3.drag()
+    .on(<span style="color: #BA2121">&#39;start&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.start)
+    .on(<span style="color: #BA2121">&#39;drag&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.drag)
+    .on(<span style="color: #BA2121">&#39;end&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.end)
+  );
+}
+</pre></div>
+</p>
+
+<p>In the first few lines I&rsquo;ve added some code that will make more sense in a moment. For now, though, I want to focus on the line beginning with <code>this.svg.call(...)</code>. Let&rsquo;s walk through this.</p>
+
+<ul>
+<li><code>this.svg.call()</code> invokes a <a href="https://stackoverflow.com/questions/9596276/how-to-explain-callbacks-in-plain-english-how-are-they-different-from-calling-o">callback function</a> on the svg element that we just defined previously.</li>
+<li><code>d3.drag()</code> creates a new <a href="https://github.com/d3/d3-drag">drag behavior</a>. Since it is nested in the <code>this.svg.call()</code>, this behvior will be activated whenever the <code>this.svg</code> is dragged.</li>
+<li><code>.on('start', this.addRect.start)</code> specifies what should happen when we, well, <em>start</em> to drag the mouse on <code>this.svg</code>. In particular, it says to invoke a function called <code>this.addRect.start</code>, which we haven&rsquo;t defined yet. Similarly, <code>.on('drag', this.addRect.drag)</code> and <code>.on('end', this.addRect.end)</code> specify what should happen as the mouse is dragged and at the end of the drag (i.e. when the mouse is released).</li>
+</ul>
+
+<h3 id="adding-the-addrect-methods:9d37e1981a24436f5fb50482f9491a95">Adding the <code>addRect</code> Methods</h3>
+
+<p>Now that we know how to add a dragging behavior to the canvas, we need to define the methods that are called at the <code>start</code>, <code>drag</code>, and <code>end</code> of the drag. To do this I&rsquo;m going to define a prototype&ndash;<code>makeAddRect</code>&ndash;which will append the methods to our <code>SVGCanvas</code> object.</p>
+
+<p>Here is the code:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.mouseOffset <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">// Get the current location of mouse along with other info (to be added to later)</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>  <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> d3.event;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  <span style="color: #008000; font-weight: bold">return</span> m;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>}
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>SVGCanvas.prototype.makeAddRect <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>  <span style="color: #408080; font-style: italic">// Methods for adding rectangles to the svg.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>  start <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>    <span style="color: #408080; font-style: italic">//Add a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>    <span style="color: #408080; font-style: italic">// 1. Get mouse location in SVG</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>    <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> self.mouseOffset();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>    self.Rect.x0 <span style="color: #666666">=</span> m.x;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>    self.Rect.y0 <span style="color: #666666">=</span> m.y;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>    <span style="color: #408080; font-style: italic">// 2. Make a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>    self.Rect.r <span style="color: #666666">=</span> self.svg <span style="color: #408080; font-style: italic">//self.zoomG</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>      .append(<span style="color: #BA2121">&#39;g&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>      .append(<span style="color: #BA2121">&#39;rect&#39;</span>) <span style="color: #408080; font-style: italic">// An SVG `rect` element</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>      .attr(<span style="color: #BA2121">&#39;x&#39;</span>, self.Rect.x0) <span style="color: #408080; font-style: italic">// Position at mouse location</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, self.Rect.y0)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #666666">1</span>) <span style="color: #408080; font-style: italic">// Make it tiny</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">24 </span>      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #666666">1</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">25 </span>      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;rect-main&#39;</span>) <span style="color: #408080; font-style: italic">// Assign a class for formatting purposes</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">26 </span>    ;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">27 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">28 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">29 </span>  drag <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">30 </span>    <span style="color: #408080; font-style: italic">// What to do when mouse is dragged</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">31 </span>    <span style="color: #408080; font-style: italic">// 1. Get the new mouse position</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">32 </span>    <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> self.mouseOffset();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">33 </span>    <span style="color: #408080; font-style: italic">// 2. Update the attributes of the rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">34 </span>    self.Rect.r.attr(<span style="color: #BA2121">&#39;x&#39;</span>, <span style="color: #008000">Math</span>.min(self.Rect.x0, m.x))
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">35 </span>      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, <span style="color: #008000">Math</span>.min(self.Rect.y0, m.y))
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">36 </span>      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #008000">Math</span>.abs(self.Rect.x0 <span style="color: #666666">-</span> m.x))
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">37 </span>      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000">Math</span>.abs(self.Rect.y0 <span style="color: #666666">-</span> m.y));
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">38 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">39 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">40 </span>  end <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">41 </span>    <span style="color: #408080; font-style: italic">// What to do on mouseup</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">42 </span>    self.Shapes.push(self.Rect);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">43 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">44 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">45 </span>  self.addRect <span style="color: #666666">=</span> {start<span style="color: #666666">:</span> start, drag<span style="color: #666666">:</span> drag, end<span style="color: #666666">:</span> end};
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">46 </span>}
+</pre></div>
+</p>
+
+<p>In short, <code>.makeAddRect</code> defines three functions then adds these functions to the <code>SVGCanvas</code> object as an object/dictionary.</p>
+
+<h3 id="what-to-do-at-the-beginning-of-a-drag-addrect-start:9d37e1981a24436f5fb50482f9491a95">What to do at the beginning of a drag: <code>addRect.start</code></h3>
+
+<p>When we begin dragging we&rsquo;re going to want to:</p>
+
+<ol>
+<li>Record the initial position of the mouse.</li>
+<li>Add a <code>&lt;rect&gt;</code> element within the svg.</li>
+</ol>
+
+<p>This first step is carried out in lines 14-16. Line 14 calls a method called <code>mouseOffset</code>, which returns the current (i.e. initial) position of the mouse.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">At this point <code>mouseOffset</code> is overkill. However, it will come in handy once we begin zoom and pan the canvas.</span> 
+
+We then record these coordinates in the <code>self.Rect.x0</code> and <code>self.Rect.y0</code>. Recall that <code>self.Rect</code> was defined in the constructor function. We will use <code>self.Rect</code> to share variables between <code>addRect.start</code>, <code>addRect.drag</code>, and <code>addRect.end</code> (and, eventually, other methods).</p>
+
+<p>Next, we make a tiny rectangle (line 18). We assign this object to <code>self.Rect.r</code> so that we can modify it later. Notice that, before we append the <code>&lt;rect&gt;</code> element, we append a <code>&lt;g&gt;</code> (group) element to the svg. This nests the <code>&lt;rect&gt;</code> in the <code>&lt;g&gt;</code> element:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">svg</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">g</span>&gt;
+    &lt;<span style="color: #008000; font-weight: bold">rect</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;/<span style="color: #008000; font-weight: bold">g</span>&gt;
+&lt;/<span style="color: #008000; font-weight: bold">svg</span>&gt;
+</pre></div>
+</p>
+
+<p>For what we&rsquo;re doing right now, this isn&rsquo;t necessary. However, it will come in handy later.</p>
+
+<h3 id="what-to-do-while-dragging-addrect-drag:9d37e1981a24436f5fb50482f9491a95">What to do while dragging: <code>addRect.drag</code></h3>
+
+<p>Each time a drag event is registered we&rsquo;re going to update the dimensions of the <code>&lt;rect&gt;</code> that we just made to reflect the change in the mouse position. As with <code>addRect.start</code> we begin by getting the current mouse position.</p>
+
+<p>We then modify the attributes the <code>&lt;rect&gt;</code> element that we just created. Depending on where the mouse was dragged, the initial position could be any one of the four corners of the rectangle. We take account of this by comparing the current mouse position with the initial mouse position, which we saved in <code>self.Rect.x0</code> and <code>self.Rect.y0</code>.</p>
+
+<h3 id="what-to-do-when-the-drag-is-complete-addrect-end:9d37e1981a24436f5fb50482f9491a95">What to do when the drag is complete: <code>addRect.end</code></h3>
+
+<p>At the moment we don&rsquo;t <em>have</em> to do anything at the completion of the drag event. However, we will want to do some things eventually.</p>
+
+<p>For now, we add the current <code>self.Rect</code> to the <code>self.Shapes</code> array. By doing this we save the information about the rectangle for later. This could be useful because&ndash;once a new drag event is initiated&ndash;the information in <code>self.Rect</code> will be overwritten with information about the newly-created rectangle.</p>
+
+<h3 id="a-note-on-context-var-self-this:9d37e1981a24436f5fb50482f9491a95">A Note on Context: <code>var self = this;</code></h3>
+
+<p>Now I want to discuss line 9. What does this line do? It defines a variable, <code>self</code>, which is equal to <code>this</code>. Here, <code>this</code> is the <code>SVGCanvas</code> object. Thus, we can access all of the properties of the <code>SVGCanvas</code> object via references to <code>self</code>. Indeed, notice that in each of the three methods just defined we always used <code>self</code> rather than <code>this</code>.</p>
+
+<p>Why do we need to do this? Go back to the line in the constructor where we defined the drag behavior:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">this</span>.svg.call(
+  d3.drag()
+  .on(<span style="color: #BA2121">&#39;start&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.start)
+  .on(<span style="color: #BA2121">&#39;drag&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.drag)
+  .on(<span style="color: #BA2121">&#39;end&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.addRect.end)
+);
+</pre></div>
+</p>
+
+<p>In this snippet, &ldquo;<code>this</code>&rdquo; refers to the <code>SVGCanvas</code> object. This is because the line was executed in the context of the <code>SVGCanvas</code> constructor. However, when <code>this.addRect.start</code> is called the context will be different. In particular, <code>this.svg.call(...)</code> defines a callback on the svg element, which means that the context is the svg element. Thus, if we were to reference <code>this</code> within the <code>addRect.start</code> method, we would be referring to the svg element rather than the <code>SVGCanvas</code> object. Our attempts to reference <code>this.Rect.x0</code> (for example) would result in an error because the svg object doesn&rsquo;t have a <code>Rect</code> property.</p>
+
+<p><figure>
+<label for="mutable-objects-demo" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="mutable-objects-demo" class="margin-toggle"/>
+<span class="marginnote">
+    <img src="/posts/drawing-1/media/mutable_objects.gif">
+    Demo: mutable objects in javascript.
+</span>
+</figure>
+</p>
+
+<p>By defining <code>var self = this;</code> at the outset of <code>.makeAddRect</code>, we set down a permanent reference to the <code>SVGCanvas</code> object. Of course, this can only work if <code>self</code> is mutable, which it is. That is, <code>self</code> will mirror changes in <code>this</code>.</p>
+
+<p>To close this section I will note that I&rsquo;m not a huge fan of this setup. My main complaint is that we need to be sure to call <code>this.makeAddRect();</code> in the constructor function in the correct place. If anyone has a thought about how to smooth this out I&rsquo;m all ears.</p>
+
+<h2 id="conclusion:9d37e1981a24436f5fb50482f9491a95">Conclusion</h2>
+
+<p>Okay, that&rsquo;s it. The full code for this post can be found at this <a href="https://gist.github.com/michaelwooley/b095fa7ce0e11d771dcb3f035fda1f07">gist</a>. Obviously, this is a fairly rudimentary step. Going forward we&rsquo;re going to want to think about:</p>
+
+<ul>
+<li>Zooming and panning the canvas.</li>
+<li>Modifying the rectangles that we&rsquo;ve added:
+
+<ul>
+<li>Resizing</li>
+<li>Repositioning</li>
+<li>Deleting</li>
+</ul></li>
+<li>Adding more information to the canvas:
+
+<ul>
+<li>Different types of rectangles.</li>
+<li>Extracting information from images.</li>
+<li>Downloading.</li>
+</ul></li>
+</ul>
+
+<p>I will take up these threads in future posts.</p>
+</section>
+  <section>
+    
+
+    <footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+    <div class="custom-js">
+	
+	    <script type="text/javascript" src=https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-1/main.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-1/step-1.js></script>
+	
+    </div>
+    
+
+
+</body>
+</html>

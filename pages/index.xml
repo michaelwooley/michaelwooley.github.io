@@ -17,13 +17,23 @@
       <guid>https://michaelwooley.github.io/pages/about/</guid>
       <description>
 
-&lt;p&gt;&lt;label for=&#34;&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
-&lt;input type=&#34;checkbox&#34; id=&#34;&#34; class=&#34;margin-toggle&#34;/&gt;
-&lt;span class=&#34;marginnote&#34;&gt;&lt;img align=&#34;right&#34; src=&#34;https://michaelwooley.github.io/images/wooley_pic.jpg&#34; style=&#34;width: 200px;&#34; hspace=&#34;0&#34;&gt;&lt;/span&gt;
+&lt;figure&gt;
+&lt;label for=&#34;yrs-trly&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;yrs-trly&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;
+    &lt;img src=&#34;https://michaelwooley.github.io/images/wooley_pic.JPG&#34;&gt;
+    
+&lt;/span&gt;
+&lt;/figure&gt;
 
-Hello! My name is Michael Wooley. I am an economics graduate student currently searching for positions in industry. My current interests are in deep learning, numerical problems, and programming (broadly conceived). However, I am always up for learning about something new. As an economist I worked on problems in macroeconomics and public economics.&lt;/p&gt;
 
-&lt;p&gt;Below you will find some links to my papers and projects. Please feel free to reach out to learn more.&lt;/p&gt;
+&lt;p&gt;Hello! My name is Michael Wooley. I am an economics graduate student currently searching for positions in industry. My current interests are in deep learning, numerical problems, and programming (broadly conceived). However, I am always up for learning about something new. As an economist I worked on problems in macroeconomics and public economics.&lt;/p&gt;
+
+&lt;p&gt;&lt;label for=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;i class=&#39;fa fa-envelope&#39;&gt;&lt;/i&gt;&amp;emsp;&lt;a href=&#34;mailto:wm.wooley@gmail.com&#34;&gt;wm.wooley@gmail.com&lt;/a&gt;&lt;br&gt;&lt;i class=&#39;fa fa-github&#39;&gt;&lt;/i&gt;&amp;emsp;&lt;a href=&#34;https://github.com/michaelwooley&#34;&gt;GitHub&lt;/a&gt;&lt;br&gt;&lt;i class=&#39;fa fa-linkedin&#39;&gt;&lt;/i&gt;&amp;emsp;&lt;a href=&#34;https://www.linkedin.com/in/michael-wooley/&#34;&gt;LinkedIn&lt;/a&gt;&lt;/span&gt;
+
+Below you will find some links to my papers and projects. Please feel free to reach out to learn more.&lt;/p&gt;
 
 &lt;p&gt;Here is my &lt;a href=&#34;https://michaelwooley.github.io/files/resume/wooley_resume.pdf&#34;&gt;cv&lt;/a&gt;.&lt;/p&gt;
 
@@ -64,6 +74,25 @@ Hello! My name is Michael Wooley. I am an economics graduate student currently s
 &lt;li&gt;&lt;a href=&#34;files/wooley_resume_short_8_9_17.pdf&#34;&gt;Business/&amp;ldquo;Data Scientist&amp;rdquo; (Shorter)&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;files/wooley_cv.pdf&#34;&gt;Academic CV&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;about-this-site:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;About This Site&lt;/h3&gt;
+
+&lt;p&gt;This site was built with &lt;a href=&#34;https://gohugo.io/&#34;&gt;Hugo&lt;/a&gt;, a static website generator. It is hosted on &lt;a href=&#34;https://github.com/&#34;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The basic theme is based on &lt;a href=&#34;https://edwardtufte.github.io/tufte-css/&#34;&gt;tufte-css&lt;/a&gt;, a stylesheet based on the &lt;a href=&#34;https://www.edwardtufte.com/tufte/&#34;&gt;Edward Tufte&amp;rsquo;s&lt;/a&gt; books and handouts. The css was converted into a full-blown Hugo theme by the creators of &lt;a href=&#34;https://github.com/shawnohare/hugo-tufte&#34;&gt;hugo-tufte&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;I have begun an overhaul of the hugo-tufte theme that includes:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Inline and marginal images and divs with captioning.&lt;/li&gt;
+&lt;li&gt;Sharing buttons (work in progress).&lt;/li&gt;
+&lt;li&gt;Easy addition of custom javascript and css for demos.&lt;/li&gt;
+&lt;li&gt;Various tweaks to the layouts and css.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Once I make some more progress I&amp;rsquo;ll look into merging these changes with hugo-tufte. In the meantime, I&amp;rsquo;d be happy to share over email.&lt;/p&gt;
 </description>
     </item>
     
