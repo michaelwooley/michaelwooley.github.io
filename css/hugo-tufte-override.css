@@ -1,0 +1,26 @@
+/*
+Sharing Buttons
+*/
+div.share-buttons {
+    position: fixed;
+    bottom: 10px;
+    left: 0;
+    width: 10%;
+    
+}
+
+div.share-buttons ul {
+    list-style-type: none;
+    margin: 0;
+    text-align: center;
+}
+
+div.share-buttons li {
+    padding: 0;
+    margin: 0;
+}
+
+div.share-buttons li a {
+    text-decoration: none;
+    background: transparent;
+}
