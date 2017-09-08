@@ -6,23 +6,417 @@
     <description>Recent content in Drawing on Michael Wooley</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 05 Sep 2017 09:33:59 -0400</lastBuildDate>
+    <lastBuildDate>Thu, 07 Sep 2017 09:33:59 -0400</lastBuildDate>
     <atom:link href="https://michaelwooley.github.io/categories/drawing/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>Drawing With d3.js Part 1: Rectangles</title>
+      <title>Drawing With D3.js Part 2: Zooming and Panning</title>
+      <link>https://michaelwooley.github.io/posts/drawing-2/</link>
+      <pubDate>Thu, 07 Sep 2017 09:33:59 -0400</pubDate>
+      
+      <guid>https://michaelwooley.github.io/posts/drawing-2/</guid>
+      <description>
+
+&lt;p&gt;This post adds features to the drawing app that we started in &lt;a href=&#34;https://michaelwooley.github.io/posts/drawing-1&#34;&gt;part 1&lt;/a&gt;. In particular, we&amp;rsquo;re going to make it easy to zoom and pan the canvas. Again D3.js will simplify our job substantially. In fact, there is a built-in feature/command (&lt;a href=&#34;https://github.com/d3/d3-zoom&#34;&gt;d3-zoom&lt;/a&gt;) that would ordinarily allow us to zoom with a scrolling/pinching gesture and pan with a click-and-drag gesture. The main wrinkle that we&amp;rsquo;re going to encounter is that the click-and-drag gesture is already taken: we click and drag to add rectangles. Our job, then, will consist in figuring out a way to juggle competing event listeners.&lt;/p&gt;
+
+&lt;p&gt;Here&amp;rsquo;s what we&amp;rsquo;re going to create:&lt;/p&gt;
+
+&lt;figure&gt;
+&lt;label for=&#34;main-sample&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;main-sample&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;code&gt;Click + drag&lt;/code&gt; &amp;#x2192; Add rectangle.&lt;br&gt;&lt;code&gt;Shift + Click + Drag&lt;/code&gt; &amp;#x2192; Pan Canvas.&lt;br&gt;&lt;code&gt;scroll&lt;/code&gt; &amp;#x2192; Zoom.&lt;br&gt;See the full sample code at this  &lt;a href=&#34;https://gist.github.com/michaelwooley/7a1727322376caed3bc13e494a03867c&#34;&gt;gist&lt;/a&gt;.&lt;/span&gt;
+&lt;div class=&#34;sample-div&#34;&gt;&lt;/div&gt;
+&lt;/figure&gt;
+
+
+&lt;p&gt;As you can see from the demo, we&amp;rsquo;re going to implement canvas panning by making it into a &lt;code&gt;Shift + Click + Drag&lt;/code&gt; gesture. To do this, we&amp;rsquo;re going to add some new code and reorganize some of our earlier code. In particular we&amp;rsquo;ll:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Introduce a zoom &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt;roup element that nests all elements that are subsequently added to the canvas. We&amp;rsquo;ll carry out zooming and panning by transforming this element.&lt;/li&gt;
+&lt;li&gt;Add a &lt;code&gt;d3.zoom&lt;/code&gt; behavior to the canvas. We&amp;rsquo;ll need to turn on the scroll gestures and turn off event listeners for the pan behavior.&lt;/li&gt;
+&lt;li&gt;Modify the &lt;code&gt;drag&lt;/code&gt; behavior on the canvas to route drag gestures. If the shift key is pressed, then the canvas should pan. If it is not, then a new rectangle should be created.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Let&amp;rsquo;s get to it.&lt;/p&gt;
+
+&lt;h2 id=&#34;restructuring-the-event-listeners:e218a3c29df923eed379019aa812cdd9&#34;&gt;Restructuring the Event Listeners&lt;/h2&gt;
+
+&lt;p&gt;In the previous post I added an event listener for a click-and-drag gesture using off-the-shelf methods from d3. For this post I&amp;rsquo;m going to need to dig a bit deeper into these methods to get the behavior that I want.&lt;/p&gt;
+
+&lt;h3 id=&#34;drag-routing:e218a3c29df923eed379019aa812cdd9&#34;&gt;Drag Routing&lt;/h3&gt;
+
+&lt;p&gt;Recall that we specified a drag behavior via something like this:&lt;/p&gt;
+
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.svg.call(
+  d3.drag()
+  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;start&amp;#39;&lt;/span&gt;, self.dragBehavior.start)
+  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;drag&amp;#39;&lt;/span&gt;, self.dragBehavior.drag)
+  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;end&amp;#39;&lt;/span&gt;, self.dragBehavior.end)
+);
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In the previous post we specified that our &lt;code&gt;dragBehavior&lt;/code&gt; methods were from &lt;code&gt;SVGCAnvas.addRect&lt;/code&gt;. That is, at the start of the drag we called the code to create the rectangle and as we dragged the the &lt;code&gt;.drag&lt;/code&gt; method changed the rectangle dimensions.&lt;/p&gt;
+
+&lt;p&gt;For this post we need to differentiate between a &amp;ldquo;vanilla drag&amp;rdquo; and a drag in which the shift key is compressed. To do this we&amp;rsquo;ll create an additional set of methods (stored in &lt;code&gt;SVGCanvas.dragBehavior&lt;/code&gt;) that will &lt;em&gt;route&lt;/em&gt; the drag behavior. Here&amp;rsquo;s some pseudo-code demonstrating the basic idea:&lt;/p&gt;
+
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;dragBehavior &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; ( Detect no shift key ) {
+    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Add and modify a rectangle&lt;/span&gt;
+  }
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; ( Detect shift key ) {
+    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Pan the Canvas&lt;/span&gt;
+  }
+}
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In short, we&amp;rsquo;re nesting an event listener in an event listener. The exact code is as follows:&lt;/p&gt;
+
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 1 &lt;/span&gt;SVGCanvas.prototype.makeDragBehavior &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 2 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; self &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 3 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 4 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; start &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 5 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color: #666666&#34;&gt;!&lt;/span&gt;d3.event.sourceEvent.shiftKey) {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 6 &lt;/span&gt;      self.addRect.start();
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 7 &lt;/span&gt;    }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 8 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (d3.event.sourceEvent.shiftKey) {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 9 &lt;/span&gt;      &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;10 &lt;/span&gt;    }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;11 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;12 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;13 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; drag &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;14 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color: #666666&#34;&gt;!&lt;/span&gt;(self.Rect.r &lt;span style=&#34;color: #666666&#34;&gt;===&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;) &lt;span style=&#34;color: #666666&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;!&lt;/span&gt;(d3.event.sourceEvent.shiftKey)) {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;15 &lt;/span&gt;      self.addRect.drag();
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;16 &lt;/span&gt;    }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;17 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (d3.event.sourceEvent.shiftKey) {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;18 &lt;/span&gt;      self.zoomPan.pan();
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;19 &lt;/span&gt;    }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;20 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;21 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;22 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; end &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color: #666666&#34;&gt;!&lt;/span&gt;(self.Rect.r &lt;span style=&#34;color: #666666&#34;&gt;===&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;) &lt;span style=&#34;color: #666666&#34;&gt;&amp;amp;&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;23 &lt;/span&gt;  &lt;span style=&#34;color: #666666&#34;&gt;!&lt;/span&gt;(d3.event.sourceEvent.shiftKey)) { self.addRect.end(); } &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;24 &lt;/span&gt;  (d3.event.sourceEvent.shiftKey) { &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;; } }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;25 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;26 &lt;/span&gt;  self.dragBehavior &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;27 &lt;/span&gt;    start&lt;span style=&#34;color: #666666&#34;&gt;:&lt;/span&gt; start,
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;28 &lt;/span&gt;    drag&lt;span style=&#34;color: #666666&#34;&gt;:&lt;/span&gt; drag,
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;29 &lt;/span&gt;    end&lt;span style=&#34;color: #666666&#34;&gt;:&lt;/span&gt; end
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;30 &lt;/span&gt;  };
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;31 &lt;/span&gt;}
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;d3.event.sourceEvent.shiftKey&lt;/code&gt; returns &lt;code&gt;true&lt;/code&gt; if the shift key is compressed.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;There are a number of other such properties for the alt key, etc.&lt;/span&gt; 
+ If the key is compressed, then&amp;ndash;in the &lt;code&gt;drag&lt;/code&gt; method&amp;ndash;we call a new method called &lt;code&gt;self.zoomPan.pan&lt;/code&gt;. This is the method that we will use to pan the canvas; it will be discussed further below. When defining the &lt;code&gt;drag&lt;/code&gt; and &lt;code&gt;end&lt;/code&gt; methods we have the additional condition &lt;code&gt;!(self.Rect.r === null)&lt;/code&gt;. This condition checks for an edge case.&lt;label for=&#34;null-rect&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;null-rect&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;To be specific, the case arises if the user 1.) Clicks down while holding the shift key, 2.) releases the shift key but not the click, and 3.) drags. Without the condition the &lt;code&gt;addRect.drag&lt;/code&gt; method would either be called on the last rectangle created&amp;ndash;changing the coordinates of that rectangle&amp;ndash;or (in the case where no rectangles have been created) we would get an error.&lt;/span&gt;
+&lt;/p&gt;
+
+&lt;p&gt;As was the case with the &lt;code&gt;SVGCanvas.addRect&lt;/code&gt; methods, I have defined an enclosing method &lt;code&gt;SVGCanvas.makeDragBehavior&lt;/code&gt; in order to define the methods and set the context. This method will have to be called from the &lt;code&gt;SVGCanvas&lt;/code&gt; constructor function.&lt;/p&gt;
+
+&lt;h3 id=&#34;zoom-listener:e218a3c29df923eed379019aa812cdd9&#34;&gt;Zoom Listener&lt;/h3&gt;
+
+&lt;p&gt;The zoom listener is going to be less elaborate than the drag listener but we&amp;rsquo;ll still have to dig into the &lt;code&gt;d3.zoom&lt;/code&gt; api a bit. Here&amp;rsquo;s the code that we need to add to the &lt;code&gt;SVGCanvas&lt;/code&gt; constructor object:&lt;/p&gt;
+
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 1 &lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.svg.call(
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 2 &lt;/span&gt;    d3.zoom()
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 3 &lt;/span&gt;    .scaleExtent([&lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;10&lt;/span&gt;])
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 4 &lt;/span&gt;    .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.zoomPan.zoom)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 5 &lt;/span&gt;  )
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 6 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;mousedown.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;)  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// For rodent lovers&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 7 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;mousemove.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 8 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;mouseup.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 9 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;touchstart.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;) &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// For our smartphone-toting friends&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;10 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;touchmove.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;11 &lt;/span&gt;  .on(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;touchend.zoom&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;null&lt;/span&gt;);
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;As with the &lt;code&gt;drag&lt;/code&gt; behavior, we add a &lt;code&gt;call&lt;/code&gt; to the &lt;code&gt;svg&lt;/code&gt; element. Lines 2-4 specify a &amp;ldquo;normal&amp;rdquo; zoom operation. That is, it attaches a zoom behavior with &lt;code&gt;d3.zoom()&lt;/code&gt;. With &lt;code&gt;.scaleExtent([1, 10])&lt;/code&gt; we modify the zoom behavior so that the minimal zoom is &amp;ldquo;1&amp;rdquo; and the maximal zoom is &amp;ldquo;10&amp;rdquo;.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;We&amp;rsquo;ll get into what exactly &amp;ldquo;1&amp;rdquo; and &amp;ldquo;10&amp;rdquo; mean below. In short, this is the number that enters the &lt;code&gt;scale(#)&lt;/code&gt; specification in the &lt;code&gt;transform&lt;/code&gt; attribute.&lt;/span&gt; 
+ Finally, line 4 attaches a method &lt;code&gt;this.zoomPan.zoom&lt;/code&gt; (discussed below) that will be used to zoom in and out.&lt;/p&gt;
+
+&lt;p&gt;In lines 6-11 we are basically undoing a lot of the default behavior of &lt;code&gt;d3.zoom&lt;/code&gt;. Usually, &lt;code&gt;d3.zoom&lt;/code&gt; is a method for both &lt;em&gt;panning&lt;/em&gt; and &lt;em&gt;zooming&lt;/em&gt;. We need to override the default panning behavior in order to route drag events to our homespun drag behavior. Let&amp;rsquo;s break down line 6 in detail. In general, the &lt;code&gt;.on([event], [callback])&lt;/code&gt; method specifies what should occur (the callback) whenever an event is detected on an element. Here, &lt;code&gt;mousedown.zoom&lt;/code&gt; is a special sort of event: a &amp;ldquo;mousedown&amp;rdquo; (i.e. downward click) associated with the zoom event (which we&amp;rsquo;ve just defined). The default behavior in this case is to start a canvas pan that would override all other mousedown events. Here, however, we specify the callback to be &lt;code&gt;null&lt;/code&gt;. That is, we specify that these events should be ignored. Each of lines 7-11 similarly &lt;code&gt;null&lt;/code&gt;ify other event listeners associated with &lt;code&gt;d3.zoom&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&#34;the-zoom-group-and-transformations:e218a3c29df923eed379019aa812cdd9&#34;&gt;The Zoom Group and Transformations&lt;/h2&gt;
+
+&lt;p&gt;In this section I&amp;rsquo;m going to set up some new infrastructure to make zooming simple. We&amp;rsquo;re going to start out by wrapping everything in a &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt;roup element. By manipulating the &lt;a href=&#34;https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform&#34;&gt;&lt;code&gt;transform&lt;/code&gt;&lt;/a&gt; attribute of the &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element we&amp;rsquo;ll be able to translate, rotate, scale, or skew all of the elements contained in the &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element &lt;em&gt;simultaneously&lt;/em&gt;. Next, we&amp;rsquo;re going to need to make some modifications to account for the fact that transforming the canvas messes up our coordinate system. We&amp;rsquo;re going to need to modify our method for detecting the mouse position&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;This is the previously-trivial &lt;code&gt;mouseOffset&lt;/code&gt; method.&lt;/span&gt; 
+ to account for this.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;aside-g-transform-transpose-30-2-scale-2:e218a3c29df923eed379019aa812cdd9&#34;&gt;Aside: &lt;code&gt;&amp;lt;g transform=&amp;quot;transpose(30,2) scale(2)&amp;quot;&amp;gt;&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;While I briefly introduced the &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element in the last post, I didn&amp;rsquo;t do anything with it. &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; elements are sort of like &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;s for SVGs. They don&amp;rsquo;t really do anything, they just organize elements into, well, groups. Groups are uniquely well-suited for transformations. Here is the basic gameplan: We&amp;rsquo;ll define a group and place all of our other elements within it. For example:&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;svg&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;height&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;250&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;width&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;250&amp;quot;&lt;/span&gt;&amp;gt;
+  &amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;g&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;class&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;zoom-group&amp;quot;&lt;/span&gt;&amp;gt;
+    &amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;x&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;94&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;y&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;112&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;width&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;160&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;height&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;120&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;class&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;rect-main&amp;quot;&lt;/span&gt;&amp;gt;&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt;&amp;gt;
+    &amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;x&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;186&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;y&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;178&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;width&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;144&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;height&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;76&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;class&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;rect-main&amp;quot;&lt;/span&gt;&amp;gt;&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt;&amp;gt;
+    &amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;x&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;132&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;y&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;148&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;width&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;88&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;height&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;60&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;class&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;rect-main&amp;quot;&lt;/span&gt;&amp;gt;&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;rect&lt;/span&gt;&amp;gt;
+  &amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;g&lt;/span&gt;&amp;gt;
+&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;svg&lt;/span&gt;&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Now, we can translate, scale, skew, or rotate all of these elements &lt;em&gt;simultaneously&lt;/em&gt; by manipulating the &lt;a href=&#34;https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform&#34;&gt;&lt;code&gt;transform&lt;/code&gt;&lt;/a&gt; attribute of &lt;code&gt;&amp;lt;g class=&amp;quot;zoom-group&amp;quot;&amp;gt;&lt;/code&gt;. Consider:&lt;figure&gt;
+&lt;label for=&#34;g_transform&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;g_transform&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;
+    &lt;img src=&#34;https://michaelwooley.github.io/posts/drawing-2/media/g_transform.gif&#34;&gt;
+    Panning and zooming affects all elements in the canvas. However, only the &lt;code&gt;transform&lt;/code&gt; attribute of the &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element changes. Notice that the &lt;code&gt;&amp;lt;rect&amp;gt;&lt;/code&gt; element does not change.
+&lt;/span&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;svg&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;height&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;250&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;width&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;250&amp;quot;&lt;/span&gt;&amp;gt;
+  &amp;lt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;g&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;class&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;zoom-group&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #7D9029&#34;&gt;transform&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;translate(-128,-80) scale(2)&amp;quot;&lt;/span&gt;&amp;gt;...&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;g&lt;/span&gt;&amp;gt;
+&amp;lt;/&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;svg&lt;/span&gt;&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Here, we&amp;rsquo;ve:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Shifted/&lt;code&gt;translate&lt;/code&gt;d the canvas:
+
+&lt;ul&gt;
+&lt;li&gt;128 units&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;Units here are defined in terms of abstract &lt;a href=&#34;https://www.w3.org/TR/SVG2/coords.html#TermUserUnits&#34;&gt;&amp;ldquo;&lt;em&gt;user units&lt;/em&gt;&amp;ldquo;&lt;/a&gt;.&lt;/span&gt; 
+ to the &lt;em&gt;right&lt;/em&gt; (i.e. leftward mouse movement).&lt;/li&gt;
+&lt;li&gt;80 units to the &lt;em&gt;down&lt;/em&gt; (i.e. upward mousemovemt).&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;Zoomed/&lt;code&gt;scale&lt;/code&gt;d the canvas so that the elements inside the group are displayed at &lt;em&gt;twice&lt;/em&gt; their ordinary size.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The &lt;code&gt;transform&lt;/code&gt; attribute is quite powerful but also rather complicated. Refer to the &lt;a href=&#34;https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform&#34;&gt;Mozilla reference page&lt;/a&gt; or this nice write-up by &lt;a href=&#34;https://www.sarasoueidan.com/blog/svg-coordinate-systems/&#34;&gt;Sara Soueidan&lt;/a&gt; for more information.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;zoom-group-implementation:e218a3c29df923eed379019aa812cdd9&#34;&gt;Zoom Group: Implementation&lt;/h3&gt;
+
+&lt;p&gt;Let&amp;rsquo;s add a zoom group to the &lt;code&gt;SVGCanvas&lt;/code&gt; constructor:&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt; SVGCanvas(options) {
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Previous...&lt;/span&gt;
+
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Canvas&lt;/span&gt;
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;//// Make the main container SVG&lt;/span&gt;
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.svg &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; d3.select(&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.addTo)
+    .append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;svg&amp;#39;&lt;/span&gt;)
+    .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;height&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.h)
+    .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;width&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.w)
+    .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;class&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;display-svg&amp;#39;&lt;/span&gt;);
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;//// Add border if requested  &amp;lt;= NOT INCLUDED IN ZOOM GROUP&lt;/span&gt;
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.addBorderRect) {
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.svg.append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;rect&amp;#39;&lt;/span&gt;)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;height&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.h)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;width&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.options.w)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;stroke&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;black&amp;#39;&lt;/span&gt;)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;stroke-width&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;4&lt;/span&gt;)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;opacity&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;0.25&lt;/span&gt;)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;fill-opacity&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;0.0&lt;/span&gt;)
+      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;class&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;border-rect&amp;#39;&lt;/span&gt;);
+  }
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;//// Add zoom and pan group&lt;/span&gt;
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.zoomG &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.svg
+    .append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;g&amp;#39;&lt;/span&gt;)
+    .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;class&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;zoom-group&amp;#39;&lt;/span&gt;);
+
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Rectangles&lt;/span&gt;
+  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// More...&lt;/span&gt;
+}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Here, we&amp;rsquo;ve append a &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element to &lt;code&gt;this.svg&lt;/code&gt; and defined a new property, &lt;code&gt;this.zoomG&lt;/code&gt;. Notice that we don&amp;rsquo;t include the border rectangle element in the zoom group. Thus, any transformations that are applied to the zoom group will not affect the border rectangle, which is what we want.&lt;/p&gt;
+
+&lt;p&gt;We &lt;em&gt;do&lt;/em&gt; want the rectangles that we draw to be affected by the transformations, however. To do this, we need to modify the &lt;code&gt;SVGCanvas.addRect.start&lt;/code&gt; method so that the new &lt;code&gt;&amp;lt;rect&amp;gt;&lt;/code&gt; elements are appended to the zoom group element rather than the &lt;code&gt;&amp;lt;svg&amp;gt;&lt;/code&gt;. We can do this by changing line 11 below:&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 1 &lt;/span&gt;SVGCanvas.prototype.makeAddRect &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 2 &lt;/span&gt;  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Methods for adding rectangles to the svg.&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 3 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; self &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 4 &lt;/span&gt;  start &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 5 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;//Add a rectangle&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 6 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// 1. Get mouse location in SVG&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 7 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; m &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; self.mouseOffset();
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 8 &lt;/span&gt;    self.Rect.x0 &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; m.x;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 9 &lt;/span&gt;    self.Rect.y0 &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; m.y;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;10 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// 2. Make a rectangle&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;11 &lt;/span&gt;    self.Rect.r &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; self.zoomG &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// &amp;lt;= self.zoomG, NOT self.svg&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;12 &lt;/span&gt;      .append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;g&amp;#39;&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;13 &lt;/span&gt;      .append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;rect&amp;#39;&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;14 &lt;/span&gt;      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;x&amp;#39;&lt;/span&gt;, self.Rect.x0)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;15 &lt;/span&gt;      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;y&amp;#39;&lt;/span&gt;, self.Rect.y0)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;16 &lt;/span&gt;      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;width&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;17 &lt;/span&gt;      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;height&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;18 &lt;/span&gt;      .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;class&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;rect-main&amp;#39;&lt;/span&gt;)
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;19 &lt;/span&gt;    ;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;20 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;21 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;22 &lt;/span&gt;  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// More ...&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;23 &lt;/span&gt;}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s it!&lt;/p&gt;
+
+&lt;h3 id=&#34;mouse-coordinates:e218a3c29df923eed379019aa812cdd9&#34;&gt;Mouse Coordinates&lt;/h3&gt;
+
+&lt;p&gt;The main thing to be aware of here is that all of this panning and zooming business will mess with your attempts to detect where the mouse click occurs. The problem is twofold: First, you want to use the mouse position to specify the location of the added rectangles relative to a single, common coordinate system.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;That is, a rectangle should have the same x/y and height/width attributes whether it is drawn at 2x zoom with a bunch of panning or 1x zoom.&lt;/span&gt; 
+ Second, we want the information/drawing that appears on the screen to reflect whatever screwy, transformed coordinate system we&amp;rsquo;re currently working in.&lt;/p&gt;
+
+&lt;p&gt;The &lt;em&gt;manual&lt;/em&gt; way of doing this is to get the mouse coordinates off of the &lt;code&gt;d3.event&lt;/code&gt; object and scale and shift them:&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;SVGCanvas.prototype.mouseOffset &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; m &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; d3.event;
+  m.x &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; (&lt;span style=&#34;color: #666666&#34;&gt;-&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.transform.x &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; m.x) &lt;span style=&#34;color: #666666&#34;&gt;/&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.transform.k;
+  m.y &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; (&lt;span style=&#34;color: #666666&#34;&gt;-&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.transform.y &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; m.y) &lt;span style=&#34;color: #666666&#34;&gt;/&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.transform.k;
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;return&lt;/span&gt; m;
+}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Here, &lt;code&gt;this.transform&lt;/code&gt; is an &lt;code&gt;SVGCanvas&lt;/code&gt; property (discussed below). The &lt;code&gt;x&lt;/code&gt;, &lt;code&gt;y&lt;/code&gt;, and &lt;code&gt;k&lt;/code&gt; properties map to &lt;code&gt;transform=&amp;quot;translate(x, y) scale(k)&amp;quot;&lt;/code&gt; from the &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; element.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;I&amp;rsquo;m keeping this code around because it may come in handy later.&lt;/span&gt; 
+&lt;/p&gt;
+
+&lt;p&gt;We can do this coordinate transform &lt;em&gt;automatically&lt;/em&gt; by making use of the &lt;code&gt;d3.mouse&lt;/code&gt; method:&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;SVGCanvas.prototype.mouseOffset &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;return&lt;/span&gt; d3.mouse(&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;.zoomG.node());
+}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Here, an array (rather than object) is returned with entries &lt;code&gt;[x, y]&lt;/code&gt;. The coordinates are automatically transformed relative to the specified element: the zoom group &lt;code&gt;&amp;lt;g&amp;gt;&lt;/code&gt; (&lt;code&gt;this.zoomG&lt;/code&gt;) element. Notice that I have called &lt;code&gt;this.zoomG.node()&lt;/code&gt;. The &lt;code&gt;.node()&lt;/code&gt; method returns the HTML block corresponding to the zoom group element.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;I still need to dig deeper into D3 to understand the reasoning behind why it is sometimes preferable to pass the node rather than the D3 object itself.&lt;/span&gt; 
+&lt;/p&gt;
+
+&lt;h2 id=&#34;zoom-and-pan-methods:e218a3c29df923eed379019aa812cdd9&#34;&gt;Zoom and Pan Methods&lt;/h2&gt;
+
+&lt;p&gt;We&amp;rsquo;ve seen that we can manipulate the canvas by manipulating the &lt;code&gt;transform&lt;/code&gt; attribute. Now we&amp;rsquo;re going to add methods and behaviors so that these manipulations will occur in response to user gestures.&lt;/p&gt;
+
+&lt;p&gt;As with the &lt;code&gt;SVGCanvas.addRect&lt;/code&gt; methods from part 1, I&amp;rsquo;m going to specify zoom and pan methods in a sort-of hacky way. We&amp;rsquo;ll add a new property&amp;ndash;&lt;code&gt;SVGCanvas.zoomPan&lt;/code&gt;&amp;ndash;that will have methods for zooming and panning the canvas. Then we&amp;rsquo;ll add new behaviors to the canvas that call these methods.&lt;/p&gt;
+
+&lt;h3 id=&#34;zoom-ing:e218a3c29df923eed379019aa812cdd9&#34;&gt;&lt;code&gt;Zoom&lt;/code&gt;ing&lt;/h3&gt;
+
+&lt;p&gt;Let&amp;rsquo;s start out by defining what should happen on zoom. Below I&amp;rsquo;ve set up the basic structure of the &lt;code&gt;SVGCanvas&lt;/code&gt; method that defines both the zooming and panning function.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;Notice that we again need to be careful about setting the context. We set &lt;code&gt;self = this&lt;/code&gt;, where &lt;code&gt;this&lt;/code&gt; is the &lt;code&gt;SVGCanvas&lt;/code&gt;.&lt;/span&gt; 
+ The zoom function proper begins on line 6. In principle, this could be a one-liner. Among other things, a &lt;code&gt;zoom&lt;/code&gt; event will return information about the shifting and scaling that results from the event.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;I&amp;rsquo;m still a bit murky on how this works.&lt;/span&gt; 
+ That is, it will return an &lt;code&gt;x&lt;/code&gt;, &lt;code&gt;y&lt;/code&gt;, and &lt;code&gt;k&lt;/code&gt; that we can use to specify the zoom group&amp;rsquo;s &lt;code&gt;transform&lt;/code&gt; attribute a la &lt;code&gt;translate(x, y) scale(k)&lt;/code&gt;. We can access this information via &lt;code&gt;d3.event.transform&lt;/code&gt;. We&amp;rsquo;ll store the information in the property &lt;code&gt;self.transform&lt;/code&gt; for later.&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 1 &lt;/span&gt;SVGCanvas.prototype.makeZoomPan &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 2 &lt;/span&gt;  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Defines zooming and panning behavior from zoom listener&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 3 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 4 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; self &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;this&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 5 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 6 &lt;/span&gt;  zoom &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 7 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// What should happen when the wheel is scrolled?&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 8 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Register transformation from event&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 9 &lt;/span&gt;    self.transform &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; d3.event.transform;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;10 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Modify `transform` property of zoom-group&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;11 &lt;/span&gt;    self.zoomG.attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;transform&amp;#39;&lt;/span&gt;, self.transform);
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;12 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;13 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Go back to initial position if zoomed out.&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;14 &lt;/span&gt;    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; (d3.event.transform.k &lt;span style=&#34;color: #666666&#34;&gt;===&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;) {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;15 &lt;/span&gt;      self.zoomG
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;16 &lt;/span&gt;        .transition(d3.transition() &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Make movement less jerky&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;17 &lt;/span&gt;          .duration(&lt;span style=&#34;color: #666666&#34;&gt;100&lt;/span&gt;)              
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;18 &lt;/span&gt;          .ease(d3.easeLinear))
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;19 &lt;/span&gt;        .attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;transform&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;translate(0,0) scale(1)&amp;#39;&lt;/span&gt;);
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;20 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;21 &lt;/span&gt;      self.transform.x &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;22 &lt;/span&gt;      self.transform.y &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;23 &lt;/span&gt;      self.transform.k &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;24 &lt;/span&gt;    }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;25 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;26 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;27 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; pan &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;28 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;//...&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;29 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;30 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;31 &lt;/span&gt;  self.zoomPan &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; {zoom&lt;span style=&#34;color: #666666&#34;&gt;:&lt;/span&gt; zoom, pan&lt;span style=&#34;color: #666666&#34;&gt;:&lt;/span&gt; pan};
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;32 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;33 &lt;/span&gt;}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;The next step is just to modify the &lt;code&gt;transform&lt;/code&gt; attribute of the zoom group (line 11). In version 4 of D3 we can simply pass &lt;code&gt;d3.event.transform&lt;/code&gt; as the argument and be done with it.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;How does that work? Here&amp;rsquo;s my impression: The second argument of &lt;code&gt;self.zoomG.attr(...)&lt;/code&gt; requires a string. When we pass an object the parser will look to see if the object has a &lt;code&gt;.toString&lt;/code&gt; method. So, for example, if &lt;code&gt;h = 5&lt;/code&gt; then calling &lt;code&gt;h.toString()&lt;/code&gt; will return the character &amp;ldquo;5&amp;rdquo;. The &lt;code&gt;d3.event.transform.toString()&lt;/code&gt; method returns &lt;code&gt;&amp;quot;translate(&amp;quot; + this.x + &amp;quot;,&amp;quot; + this.y + &amp;quot;) scale(&amp;quot; + this.k + &amp;quot;)&amp;quot;&lt;/code&gt;. So, in short, if &lt;code&gt;d3.event.x = 5&lt;/code&gt;, &lt;code&gt;d3.event.y = 6&lt;/code&gt;, and &lt;code&gt;d3.event.k = 2&lt;/code&gt; we get &lt;code&gt;translate(5,6) scale(2)&lt;/code&gt;.&lt;/span&gt; 
+ So the one-liner version of this is &lt;code&gt;self.zoomG.attr(&#39;transform&#39;, d3.event.transform)&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now let&amp;rsquo;s turn to the part beginning in line 14. The idea behind this block is to reset the canvas positioning whenever we&amp;rsquo;re zoomed out completely. In short, it tests whether the scale is 1 (the minimum scaling level from &lt;code&gt;.scaleExtent([1, 10])&lt;/code&gt;). If it is, we change the transform property of the zoom group element so that the translation is &lt;code&gt;(0,0)&lt;/code&gt; (i.e. no translation). In lines 16-18 we use &lt;a href=&#34;https://github.com/d3/d3-transition&#34;&gt;D3 transitions&lt;/a&gt; to make the canvas slide into the new position &lt;em&gt;quickly&lt;/em&gt; (in 100ms) but &lt;em&gt;gracefully&lt;/em&gt;. We then manually reset the properties of &lt;code&gt;self.transform&lt;/code&gt; to the specified coordinates.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;In an earlier version of this code I tried resetting &lt;code&gt;self.transform&lt;/code&gt; by calling &lt;a href=&#34;https://github.com/d3/d3-zoom/blob/master/README.md#zoomTransform&#34;&gt;&lt;code&gt;d3.zoomTransform(this.zoomG.node())&lt;/code&gt;&lt;/a&gt;. This produced some odd behavior that I won&amp;rsquo;t get into. It now occurs to me that this probably doesn&amp;rsquo;t work because &lt;code&gt;d3.zoomTransform(this.zoomG.node())&lt;/code&gt; was called at some point in the 100ms during which the smooth transition was occurring. Thus, the new &lt;code&gt;self.transform&lt;/code&gt; reflected the transform at some point along the transformation point rather than at &lt;code&gt;x=0, y=0, k=1&lt;/code&gt;.&lt;/span&gt; 
+&lt;/p&gt;
+
+&lt;h3 id=&#34;pan-ning:e218a3c29df923eed379019aa812cdd9&#34;&gt;&lt;code&gt;Pan&lt;/code&gt;ning&lt;/h3&gt;
+
+&lt;p&gt;The &lt;code&gt;pan&lt;/code&gt; method will be triggered by a drag event. As with the &lt;code&gt;zoom&lt;/code&gt; method the basic idea will be to modify the &lt;code&gt;transform&lt;/code&gt; attribute of the zoom group element (line 9).&lt;/p&gt;
+
+&lt;p&gt;What should the new &lt;code&gt;transform&lt;/code&gt; be? Among other things, the &lt;code&gt;d3.event&lt;/code&gt; object that is generated by a &lt;code&gt;drag&lt;/code&gt; event has properties&amp;ndash;&lt;code&gt;.dx&lt;/code&gt; and &lt;code&gt;.dy&lt;/code&gt;&amp;ndash;related to how much the mouse has moved in each direction since the last time the event was triggered. We know the initial &lt;code&gt;transform&lt;/code&gt; of the zoom group is from the &lt;code&gt;self.transform&lt;/code&gt; property. We can then update this property using &lt;code&gt;d3.event.dx&lt;/code&gt; and &lt;code&gt;d3.event.dy&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 1 &lt;/span&gt;SVGCanvas.prototype.makeZoomPan &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 2 &lt;/span&gt;  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// ...&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 3 &lt;/span&gt;  
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 4 &lt;/span&gt;  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; pan &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt;() {
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 5 &lt;/span&gt;    self.transform.x &lt;span style=&#34;color: #666666&#34;&gt;+=&lt;/span&gt; d3.event.dx;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 6 &lt;/span&gt;    self.transform.y &lt;span style=&#34;color: #666666&#34;&gt;+=&lt;/span&gt; d3.event.dy;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 7 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 8 &lt;/span&gt;    &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Update Attribute&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt; 9 &lt;/span&gt;    d3.select(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;g.zoom-group&amp;#39;&lt;/span&gt;).attr(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;transform&amp;#39;&lt;/span&gt;, self.transform);
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;10 &lt;/span&gt;  }
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;11 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;12 &lt;/span&gt;  &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// ...&lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;13 &lt;/span&gt;
+&lt;span style=&#34;background-color: #f0f0f0; padding: 0 5px 0 5px&#34;&gt;14 &lt;/span&gt;}
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;h2 id=&#34;concluding-remarks:e218a3c29df923eed379019aa812cdd9&#34;&gt;Concluding Remarks&lt;/h2&gt;
+
+&lt;p&gt;That&amp;rsquo;s it! To summarize, we&amp;rsquo;ve added panning and zooming to our still-rudimentary drawing app. The main ideas that I&amp;rsquo;ve introduced to do this were:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Routing methods to handle complex events (e.g. shift + drag).&lt;/li&gt;
+&lt;li&gt;Selective &amp;ldquo;silencing&amp;rdquo; of event handlers associated with D3 events (e.g. zoom but don&amp;rsquo;t pan).&lt;/li&gt;
+&lt;li&gt;Use of the &lt;code&gt;transform&lt;/code&gt; attribute of &lt;code&gt;svg&lt;/code&gt; elements.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;In the next part we&amp;rsquo;ll make it possible to moving and resize rectangles that we&amp;rsquo;ve already created.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Drawing With D3.js Part 1: Rectangles</title>
       <link>https://michaelwooley.github.io/posts/drawing-1/</link>
-      <pubDate>Tue, 05 Sep 2017 09:33:59 -0400</pubDate>
+      <pubDate>Wed, 06 Sep 2017 09:33:59 -0400</pubDate>
       
       <guid>https://michaelwooley.github.io/posts/drawing-1/</guid>
       <description>
 
-&lt;p&gt;In this post I am going to take a first step towards a sort of drawing app with
-the &lt;code&gt;d3.js&lt;/code&gt; library.&lt;label for=&#34;point-of-this&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;p&gt;In this post I am going to take a first step towards a sort of drawing app with the &lt;code&gt;D3.js&lt;/code&gt; library. By the end of this post we&amp;rsquo;ll have a functioning-but-limited drawing app. In particular, we&amp;rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture.&lt;label for=&#34;point-of-this&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;point-of-this&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;span class=&#34;marginnote&#34;&gt;While there is a larger point to this little project, I&amp;rsquo;m not going to get into it right now. By the end of this series the purpose will come into focus.&lt;/span&gt;
+&lt;/p&gt;
 
-By the end of this post we&amp;rsquo;ll have a functioning-but-limited drawing app. In particular, we&amp;rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture. Here&amp;rsquo;s what we&amp;rsquo;ll be working towards:&lt;/p&gt;
+&lt;p&gt;Here&amp;rsquo;s what we&amp;rsquo;ll be working towards:&lt;/p&gt;
 
 &lt;figure&gt;
 &lt;label for=&#34;main-sample&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
@@ -91,15 +485,15 @@ By the end of this post we&amp;rsquo;ll have a functioning-but-limited drawing a
 &lt;span class=&#34;sidenote&#34;&gt;If we just add an &lt;code&gt;&amp;lt;svg&amp;gt;&lt;/code&gt; element to the DOM and nothing else there will just be blank space.&lt;/span&gt; 
  That takes care of lines 1-18.&lt;/p&gt;
 
-&lt;p&gt;The code beginning in line 22 creates the canvas in the form of an &lt;code&gt;&amp;lt;svg&amp;gt;&lt;/code&gt; element. This is also the first time that we&amp;rsquo;ve encountered d3 in the code.&lt;/p&gt;
+&lt;p&gt;The code beginning in line 22 creates the canvas in the form of an &lt;code&gt;&amp;lt;svg&amp;gt;&lt;/code&gt; element. This is also the first time that we&amp;rsquo;ve encountered D3 in the code.&lt;/p&gt;
 
 &lt;hr /&gt;
 
-&lt;h3 id=&#34;aside-basic-d3-js:9d37e1981a24436f5fb50482f9491a95&#34;&gt;Aside: Basic &lt;code&gt;d3.js&lt;/code&gt;&lt;/h3&gt;
+&lt;h3 id=&#34;aside-basic-d3-js:9d37e1981a24436f5fb50482f9491a95&#34;&gt;Aside: Basic &lt;code&gt;D3.js&lt;/code&gt;&lt;/h3&gt;
 
 &lt;p&gt;&lt;label for=&#34;d3-version&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;d3-version&#34; class=&#34;margin-toggle&#34;/&gt;
-&lt;span class=&#34;marginnote&#34;&gt;I will be using &lt;a href=&#34;https://github.com/d3/d3/wiki&#34;&gt;d3 v4.0&lt;/a&gt;. The API documentation can be found &lt;a href=&#34;https://github.com/d3/d3/blob/master/API.md&#34;&gt;here&lt;/a&gt;.&lt;/span&gt;
+&lt;span class=&#34;marginnote&#34;&gt;I will be using &lt;a href=&#34;https://github.com/d3/d3/wiki&#34;&gt;D3 v4.0&lt;/a&gt;. The API documentation can be found &lt;a href=&#34;https://github.com/d3/d3/blob/master/API.md&#34;&gt;here&lt;/a&gt;.&lt;/span&gt;
 Here&amp;rsquo;s a quick run-down of the basic pattern that we follow when creating elements with d3:&lt;/p&gt;
 
 &lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;var&lt;/span&gt; div &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; 			&lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// Define a variable in javascript called &amp;quot;div&amp;quot;&lt;/span&gt;
@@ -139,7 +533,7 @@ div.append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;svg&amp;#39;&lt;/
 &lt;/pre&gt;&lt;/div&gt;
 &lt;/p&gt;
 
-&lt;p&gt;In short, d3.js provides an easy way of altering the DOM. There is a lot more to d3.js than this. However, this simple select-append pattern will turn out to be quite powerful.&lt;/p&gt;
+&lt;p&gt;In short, D3.js provides an easy way of altering the DOM. There is a lot more to D3.js than this. However, this simple select-append pattern will turn out to be quite powerful.&lt;/p&gt;
 
 &lt;hr /&gt;
 
@@ -169,13 +563,13 @@ div.append(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;svg&amp;#39;&lt;/
 &lt;li&gt;When the user releases the click (i.e. &lt;code&gt;mouseup&lt;/code&gt;/&lt;code&gt;end&lt;/code&gt;) the rectangle remains in place.&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;Luckily, d3 makes it fairly easy to do this sort of thing. Here is the plan: First, we&amp;rsquo;re going to create three methods corresponding to the three steps below. Then, we&amp;rsquo;re going to add a &lt;em&gt;drag event listener&lt;/em&gt; to the svg element that calls each of the three methods whenever the computer registers a click-and-drag gesture.&lt;/p&gt;
+&lt;p&gt;Luckily, D3 makes it fairly easy to do this sort of thing. Here is the plan: First, we&amp;rsquo;re going to create three methods corresponding to the three steps below. Then, we&amp;rsquo;re going to add a &lt;em&gt;drag event listener&lt;/em&gt; to the svg element that calls each of the three methods whenever the computer registers a click-and-drag gesture.&lt;/p&gt;
 
 &lt;p&gt;I&amp;rsquo;m going to work backwards through these two steps.&lt;/p&gt;
 
 &lt;h3 id=&#34;drag-event-listener:9d37e1981a24436f5fb50482f9491a95&#34;&gt;Drag Event Listener&lt;/h3&gt;
 
-&lt;p&gt;We&amp;rsquo;re going to alter the constructor for the &lt;code&gt;SVGCanvas&lt;/code&gt; element to add event listeners. This is another area where d3 excels. Here&amp;rsquo;s a snippet of the constructor code:&lt;/p&gt;
+&lt;p&gt;We&amp;rsquo;re going to alter the constructor for the &lt;code&gt;SVGCanvas&lt;/code&gt; element to add event listeners. This is another area where D3 excels. Here&amp;rsquo;s a snippet of the constructor code:&lt;/p&gt;
 
 &lt;p&gt;&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;function&lt;/span&gt; SVGCanvas(options) {
   &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;// ...Previous code...&lt;/span&gt;

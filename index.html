@@ -39,6 +39,7 @@ MathJax.Hub.Config({
 
 
 
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
 
 
@@ -86,7 +87,7 @@ MathJax.Hub.Config({
     <section class='content-header'>
 <h1 class="content-title">
   
-  <a href="/posts/drawing-1/">Drawing With d3.js Part 1: Rectangles</a>
+  <a href="/posts/drawing-2/">Drawing With D3.js Part 2: Zooming and Panning</a>
   
 </h1>
 
@@ -101,7 +102,7 @@ MathJax.Hub.Config({
 
     
       <i class="fa fa-calendar"></i>
-      &nbsp;Sep 5, 2017
+      &nbsp;Sep 7, 2017
     
 
     
@@ -110,7 +111,7 @@ MathJax.Hub.Config({
       <br>
       <i class="fa fa-tags"> </i>
       
-        <a  href="https://michaelwooley.github.io/categories/d3.js">d3.js</a>
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
       
         <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
       
@@ -125,11 +126,68 @@ MathJax.Hub.Config({
     <p>
     
       <span class="marginnote">
-          <img src=/posts/drawing-1/media/draw_rect_test.gif height="200" width="200"></img>
+          <img src=/posts/drawing-2/media/demo_avatar.gif height="200" width="200"></img>
       </span>
     
     
-    In this post I am going to take a first step towards a sort of drawing app with the d3.js library.&#8853; While there is a larger point to this little project, I&rsquo;m not going to get into it right now. By the end of this series the purpose will come into focus. By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. In particular, we&rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture.
+    This post adds features to the drawing app that we started in part 1. In particular, we&rsquo;re going to make it easy to zoom and pan the canvas. Again D3.js will simplify our job substantially. In fact, there is a built-in feature/command (d3-zoom) that would ordinarily allow us to zoom with a scrolling/pinching gesture and pan with a click-and-drag gesture. The main wrinkle that we&rsquo;re going to encounter is that the click-and-drag gesture is already taken: we click and drag to add rectangles.
+    </p>
+    
+    <p><a href="/posts/drawing-2/">Read On &rarr;</a></p>
+    </div>
+    
+  
+
+  
+    <div class='post-description'>
+    <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/drawing-1/">Drawing With D3.js Part 1: Rectangles</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 6, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/tablereader">TableReader</a>
+      
+    
+  </span>
+
+
+</section>
+
+    <p>
+    
+      <span class="marginnote">
+          <img src=/posts/drawing-1/media/demo_avatar.gif height="200" width="200"></img>
+      </span>
+    
+    
+    <p>In this post I am going to take a first step towards a sort of drawing app with the <code>D3.js</code> library. By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. In particular, we&rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture.</p>
+
     </p>
     
     <p><a href="/posts/drawing-1/">Read On &rarr;</a></p>

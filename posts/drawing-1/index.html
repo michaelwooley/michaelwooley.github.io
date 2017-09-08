@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 
 <head>
-<title>Michael Wooley - Drawing With d3.js Part 1: Rectangles</title>
+<title>Michael Wooley - Drawing With D3.js Part 1: Rectangles</title>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,7 +72,7 @@
   <section class='content-header'>
 <h1 class="content-title">
   
-  <a href="/posts/drawing-1/">Drawing With d3.js Part 1: Rectangles</a>
+  <a href="/posts/drawing-1/">Drawing With D3.js Part 1: Rectangles</a>
   
 </h1>
 
@@ -87,7 +87,7 @@
 
     
       <i class="fa fa-calendar"></i>
-      &nbsp;Sep 5, 2017
+      &nbsp;Sep 6, 2017
     
 
     
@@ -96,7 +96,7 @@
       <br>
       <i class="fa fa-tags"> </i>
       
-        <a  href="https://michaelwooley.github.io/categories/d3.js">d3.js</a>
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
       
         <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
       
@@ -112,12 +112,12 @@
 
   <section class="content">
 
-<p>In this post I am going to take a first step towards a sort of drawing app with
-the <code>d3.js</code> library.<label for="point-of-this" class="margin-toggle">&#8853;</label>
+<p>In this post I am going to take a first step towards a sort of drawing app with the <code>D3.js</code> library. By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. In particular, we&rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture.<label for="point-of-this" class="margin-toggle">&#8853;</label>
 <input type="checkbox" id="point-of-this" class="margin-toggle"/>
 <span class="marginnote">While there is a larger point to this little project, I&rsquo;m not going to get into it right now. By the end of this series the purpose will come into focus.</span>
+</p>
 
-By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. In particular, we&rsquo;ll be able to add rectangles to an svg canvas via a click-and-drag gesture. Here&rsquo;s what we&rsquo;ll be working towards:</p>
+<p>Here&rsquo;s what we&rsquo;ll be working towards:</p>
 
 <figure>
 <label for="main-sample" class="margin-toggle">&#8853;</label>
@@ -186,15 +186,15 @@ By the end of this post we&rsquo;ll have a functioning-but-limited drawing app. 
 <span class="sidenote">If we just add an <code>&lt;svg&gt;</code> element to the DOM and nothing else there will just be blank space.</span> 
  That takes care of lines 1-18.</p>
 
-<p>The code beginning in line 22 creates the canvas in the form of an <code>&lt;svg&gt;</code> element. This is also the first time that we&rsquo;ve encountered d3 in the code.</p>
+<p>The code beginning in line 22 creates the canvas in the form of an <code>&lt;svg&gt;</code> element. This is also the first time that we&rsquo;ve encountered D3 in the code.</p>
 
 <hr />
 
-<h3 id="aside-basic-d3-js:9d37e1981a24436f5fb50482f9491a95">Aside: Basic <code>d3.js</code></h3>
+<h3 id="aside-basic-d3-js:9d37e1981a24436f5fb50482f9491a95">Aside: Basic <code>D3.js</code></h3>
 
 <p><label for="d3-version" class="margin-toggle">&#8853;</label>
 <input type="checkbox" id="d3-version" class="margin-toggle"/>
-<span class="marginnote">I will be using <a href="https://github.com/d3/d3/wiki">d3 v4.0</a>. The API documentation can be found <a href="https://github.com/d3/d3/blob/master/API.md">here</a>.</span>
+<span class="marginnote">I will be using <a href="https://github.com/d3/d3/wiki">D3 v4.0</a>. The API documentation can be found <a href="https://github.com/d3/d3/blob/master/API.md">here</a>.</span>
 Here&rsquo;s a quick run-down of the basic pattern that we follow when creating elements with d3:</p>
 
 <div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">var</span> div <span style="color: #666666">=</span> 			<span style="color: #408080; font-style: italic">// Define a variable in javascript called &quot;div&quot;</span>
@@ -234,7 +234,7 @@ div.append(<span style="color: #BA2121">&#39;svg&#39;</span>);		<span style="col
 </pre></div>
 </p>
 
-<p>In short, d3.js provides an easy way of altering the DOM. There is a lot more to d3.js than this. However, this simple select-append pattern will turn out to be quite powerful.</p>
+<p>In short, D3.js provides an easy way of altering the DOM. There is a lot more to D3.js than this. However, this simple select-append pattern will turn out to be quite powerful.</p>
 
 <hr />
 
@@ -264,13 +264,13 @@ div.append(<span style="color: #BA2121">&#39;svg&#39;</span>);		<span style="col
 <li>When the user releases the click (i.e. <code>mouseup</code>/<code>end</code>) the rectangle remains in place.</li>
 </ol>
 
-<p>Luckily, d3 makes it fairly easy to do this sort of thing. Here is the plan: First, we&rsquo;re going to create three methods corresponding to the three steps below. Then, we&rsquo;re going to add a <em>drag event listener</em> to the svg element that calls each of the three methods whenever the computer registers a click-and-drag gesture.</p>
+<p>Luckily, D3 makes it fairly easy to do this sort of thing. Here is the plan: First, we&rsquo;re going to create three methods corresponding to the three steps below. Then, we&rsquo;re going to add a <em>drag event listener</em> to the svg element that calls each of the three methods whenever the computer registers a click-and-drag gesture.</p>
 
 <p>I&rsquo;m going to work backwards through these two steps.</p>
 
 <h3 id="drag-event-listener:9d37e1981a24436f5fb50482f9491a95">Drag Event Listener</h3>
 
-<p>We&rsquo;re going to alter the constructor for the <code>SVGCanvas</code> element to add event listeners. This is another area where d3 excels. Here&rsquo;s a snippet of the constructor code:</p>
+<p>We&rsquo;re going to alter the constructor for the <code>SVGCanvas</code> element to add event listeners. This is another area where D3 excels. Here&rsquo;s a snippet of the constructor code:</p>
 
 <p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> SVGCanvas(options) {
   <span style="color: #408080; font-style: italic">// ...Previous code...</span>

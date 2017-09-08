@@ -1,0 +1,578 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - Drawing With D3.js Part 2: Zooming and Panning</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+	
+	    <link rel="stylesheet" href=/posts/drawing-2/main.css>
+	
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/drawing-2/">Drawing With D3.js Part 2: Zooming and Panning</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 7, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/tablereader">TableReader</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>This post adds features to the drawing app that we started in <a href="/posts/drawing-1">part 1</a>. In particular, we&rsquo;re going to make it easy to zoom and pan the canvas. Again D3.js will simplify our job substantially. In fact, there is a built-in feature/command (<a href="https://github.com/d3/d3-zoom">d3-zoom</a>) that would ordinarily allow us to zoom with a scrolling/pinching gesture and pan with a click-and-drag gesture. The main wrinkle that we&rsquo;re going to encounter is that the click-and-drag gesture is already taken: we click and drag to add rectangles. Our job, then, will consist in figuring out a way to juggle competing event listeners.</p>
+
+<p>Here&rsquo;s what we&rsquo;re going to create:</p>
+
+<figure>
+<label for="main-sample" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample" class="margin-toggle"/>
+<span class="marginnote"><code>Click + drag</code> &#x2192; Add rectangle.<br><code>Shift + Click + Drag</code> &#x2192; Pan Canvas.<br><code>scroll</code> &#x2192; Zoom.<br>See the full sample code at this  <a href="https://gist.github.com/michaelwooley/7a1727322376caed3bc13e494a03867c">gist</a>.</span>
+<div class="sample-div"></div>
+</figure>
+
+
+<p>As you can see from the demo, we&rsquo;re going to implement canvas panning by making it into a <code>Shift + Click + Drag</code> gesture. To do this, we&rsquo;re going to add some new code and reorganize some of our earlier code. In particular we&rsquo;ll:</p>
+
+<ul>
+<li>Introduce a zoom <code>&lt;g&gt;</code>roup element that nests all elements that are subsequently added to the canvas. We&rsquo;ll carry out zooming and panning by transforming this element.</li>
+<li>Add a <code>d3.zoom</code> behavior to the canvas. We&rsquo;ll need to turn on the scroll gestures and turn off event listeners for the pan behavior.</li>
+<li>Modify the <code>drag</code> behavior on the canvas to route drag gestures. If the shift key is pressed, then the canvas should pan. If it is not, then a new rectangle should be created.</li>
+</ul>
+
+<p>Let&rsquo;s get to it.</p>
+
+<h2 id="restructuring-the-event-listeners:e218a3c29df923eed379019aa812cdd9">Restructuring the Event Listeners</h2>
+
+<p>In the previous post I added an event listener for a click-and-drag gesture using off-the-shelf methods from d3. For this post I&rsquo;m going to need to dig a bit deeper into these methods to get the behavior that I want.</p>
+
+<h3 id="drag-routing:e218a3c29df923eed379019aa812cdd9">Drag Routing</h3>
+
+<p>Recall that we specified a drag behavior via something like this:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">this</span>.svg.call(
+  d3.drag()
+  .on(<span style="color: #BA2121">&#39;start&#39;</span>, self.dragBehavior.start)
+  .on(<span style="color: #BA2121">&#39;drag&#39;</span>, self.dragBehavior.drag)
+  .on(<span style="color: #BA2121">&#39;end&#39;</span>, self.dragBehavior.end)
+);
+</pre></div>
+
+
+<p>In the previous post we specified that our <code>dragBehavior</code> methods were from <code>SVGCAnvas.addRect</code>. That is, at the start of the drag we called the code to create the rectangle and as we dragged the the <code>.drag</code> method changed the rectangle dimensions.</p>
+
+<p>For this post we need to differentiate between a &ldquo;vanilla drag&rdquo; and a drag in which the shift key is compressed. To do this we&rsquo;ll create an additional set of methods (stored in <code>SVGCanvas.dragBehavior</code>) that will <em>route</em> the drag behavior. Here&rsquo;s some pseudo-code demonstrating the basic idea:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>dragBehavior <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+  <span style="color: #008000; font-weight: bold">if</span> ( Detect no shift key ) {
+    <span style="color: #408080; font-style: italic">// Add and modify a rectangle</span>
+  }
+  <span style="color: #008000; font-weight: bold">if</span> ( Detect shift key ) {
+    <span style="color: #408080; font-style: italic">// Pan the Canvas</span>
+  }
+}
+</pre></div>
+
+
+<p>In short, we&rsquo;re nesting an event listener in an event listener. The exact code is as follows:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.makeDragBehavior <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  <span style="color: #008000; font-weight: bold">var</span> start <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>    <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #666666">!</span>d3.event.sourceEvent.shiftKey) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>      self.addRect.start();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>    }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>    <span style="color: #008000; font-weight: bold">if</span> (d3.event.sourceEvent.shiftKey) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>      <span style="color: #008000; font-weight: bold">null</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>    }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>  <span style="color: #008000; font-weight: bold">var</span> drag <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>    <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #666666">!</span>(self.Rect.r <span style="color: #666666">===</span> <span style="color: #008000; font-weight: bold">null</span>) <span style="color: #666666">&amp;&amp;</span> <span style="color: #666666">!</span>(d3.event.sourceEvent.shiftKey)) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>      self.addRect.drag();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>    }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>    <span style="color: #008000; font-weight: bold">if</span> (d3.event.sourceEvent.shiftKey) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>      self.zoomPan.pan();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>    }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>  <span style="color: #008000; font-weight: bold">var</span> end <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {  <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #666666">!</span>(self.Rect.r <span style="color: #666666">===</span> <span style="color: #008000; font-weight: bold">null</span>) <span style="color: #666666">&amp;</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>  <span style="color: #666666">!</span>(d3.event.sourceEvent.shiftKey)) { self.addRect.end(); } <span style="color: #008000; font-weight: bold">if</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">24 </span>  (d3.event.sourceEvent.shiftKey) { <span style="color: #008000; font-weight: bold">null</span>; } }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">25 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">26 </span>  self.dragBehavior <span style="color: #666666">=</span> {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">27 </span>    start<span style="color: #666666">:</span> start,
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">28 </span>    drag<span style="color: #666666">:</span> drag,
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">29 </span>    end<span style="color: #666666">:</span> end
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">30 </span>  };
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">31 </span>}
+</pre></div>
+
+
+<p>The <code>d3.event.sourceEvent.shiftKey</code> returns <code>true</code> if the shift key is compressed.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">There are a number of other such properties for the alt key, etc.</span> 
+ If the key is compressed, then&ndash;in the <code>drag</code> method&ndash;we call a new method called <code>self.zoomPan.pan</code>. This is the method that we will use to pan the canvas; it will be discussed further below. When defining the <code>drag</code> and <code>end</code> methods we have the additional condition <code>!(self.Rect.r === null)</code>. This condition checks for an edge case.<label for="null-rect" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="null-rect" class="margin-toggle"/>
+<span class="marginnote">To be specific, the case arises if the user 1.) Clicks down while holding the shift key, 2.) releases the shift key but not the click, and 3.) drags. Without the condition the <code>addRect.drag</code> method would either be called on the last rectangle created&ndash;changing the coordinates of that rectangle&ndash;or (in the case where no rectangles have been created) we would get an error.</span>
+</p>
+
+<p>As was the case with the <code>SVGCanvas.addRect</code> methods, I have defined an enclosing method <code>SVGCanvas.makeDragBehavior</code> in order to define the methods and set the context. This method will have to be called from the <code>SVGCanvas</code> constructor function.</p>
+
+<h3 id="zoom-listener:e218a3c29df923eed379019aa812cdd9">Zoom Listener</h3>
+
+<p>The zoom listener is going to be less elaborate than the drag listener but we&rsquo;ll still have to dig into the <code>d3.zoom</code> api a bit. Here&rsquo;s the code that we need to add to the <code>SVGCanvas</code> constructor object:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span><span style="color: #008000; font-weight: bold">this</span>.svg.call(
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>    d3.zoom()
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>    .scaleExtent([<span style="color: #666666">1</span>, <span style="color: #666666">10</span>])
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>    .on(<span style="color: #BA2121">&#39;zoom&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.zoomPan.zoom)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>  )
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>  .on(<span style="color: #BA2121">&#39;mousedown.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>)  <span style="color: #408080; font-style: italic">// For rodent lovers</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>  .on(<span style="color: #BA2121">&#39;mousemove.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>  .on(<span style="color: #BA2121">&#39;mouseup.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>  .on(<span style="color: #BA2121">&#39;touchstart.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>) <span style="color: #408080; font-style: italic">// For our smartphone-toting friends</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>  .on(<span style="color: #BA2121">&#39;touchmove.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>  .on(<span style="color: #BA2121">&#39;touchend.zoom&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>);
+</pre></div>
+
+
+<p>As with the <code>drag</code> behavior, we add a <code>call</code> to the <code>svg</code> element. Lines 2-4 specify a &ldquo;normal&rdquo; zoom operation. That is, it attaches a zoom behavior with <code>d3.zoom()</code>. With <code>.scaleExtent([1, 10])</code> we modify the zoom behavior so that the minimal zoom is &ldquo;1&rdquo; and the maximal zoom is &ldquo;10&rdquo;.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">We&rsquo;ll get into what exactly &ldquo;1&rdquo; and &ldquo;10&rdquo; mean below. In short, this is the number that enters the <code>scale(#)</code> specification in the <code>transform</code> attribute.</span> 
+ Finally, line 4 attaches a method <code>this.zoomPan.zoom</code> (discussed below) that will be used to zoom in and out.</p>
+
+<p>In lines 6-11 we are basically undoing a lot of the default behavior of <code>d3.zoom</code>. Usually, <code>d3.zoom</code> is a method for both <em>panning</em> and <em>zooming</em>. We need to override the default panning behavior in order to route drag events to our homespun drag behavior. Let&rsquo;s break down line 6 in detail. In general, the <code>.on([event], [callback])</code> method specifies what should occur (the callback) whenever an event is detected on an element. Here, <code>mousedown.zoom</code> is a special sort of event: a &ldquo;mousedown&rdquo; (i.e. downward click) associated with the zoom event (which we&rsquo;ve just defined). The default behavior in this case is to start a canvas pan that would override all other mousedown events. Here, however, we specify the callback to be <code>null</code>. That is, we specify that these events should be ignored. Each of lines 7-11 similarly <code>null</code>ify other event listeners associated with <code>d3.zoom</code>.</p>
+
+<h2 id="the-zoom-group-and-transformations:e218a3c29df923eed379019aa812cdd9">The Zoom Group and Transformations</h2>
+
+<p>In this section I&rsquo;m going to set up some new infrastructure to make zooming simple. We&rsquo;re going to start out by wrapping everything in a <code>&lt;g&gt;</code>roup element. By manipulating the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform"><code>transform</code></a> attribute of the <code>&lt;g&gt;</code> element we&rsquo;ll be able to translate, rotate, scale, or skew all of the elements contained in the <code>&lt;g&gt;</code> element <em>simultaneously</em>. Next, we&rsquo;re going to need to make some modifications to account for the fact that transforming the canvas messes up our coordinate system. We&rsquo;re going to need to modify our method for detecting the mouse position<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">This is the previously-trivial <code>mouseOffset</code> method.</span> 
+ to account for this.</p>
+
+<hr />
+
+<h3 id="aside-g-transform-transpose-30-2-scale-2:e218a3c29df923eed379019aa812cdd9">Aside: <code>&lt;g transform=&quot;transpose(30,2) scale(2)&quot;&gt;</code></h3>
+
+<p>While I briefly introduced the <code>&lt;g&gt;</code> element in the last post, I didn&rsquo;t do anything with it. <code>&lt;g&gt;</code> elements are sort of like <code>&lt;div&gt;</code>s for SVGs. They don&rsquo;t really do anything, they just organize elements into, well, groups. Groups are uniquely well-suited for transformations. Here is the basic gameplan: We&rsquo;ll define a group and place all of our other elements within it. For example:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">svg</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">g</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;zoom-group&quot;</span>&gt;
+    &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;94&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;112&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;160&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;120&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rect-main&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+    &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;186&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;178&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;144&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;76&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rect-main&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+    &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;132&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;148&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;88&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;60&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rect-main&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;/<span style="color: #008000; font-weight: bold">g</span>&gt;
+&lt;/<span style="color: #008000; font-weight: bold">svg</span>&gt;
+</pre></div>
+</p>
+
+<p>Now, we can translate, scale, skew, or rotate all of these elements <em>simultaneously</em> by manipulating the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform"><code>transform</code></a> attribute of <code>&lt;g class=&quot;zoom-group&quot;&gt;</code>. Consider:<figure>
+<label for="g_transform" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="g_transform" class="margin-toggle"/>
+<span class="marginnote">
+    <img src="/posts/drawing-2/media/g_transform.gif">
+    Panning and zooming affects all elements in the canvas. However, only the <code>transform</code> attribute of the <code>&lt;g&gt;</code> element changes. Notice that the <code>&lt;rect&gt;</code> element does not change.
+</span>
+</figure>
+</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">svg</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">g</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;zoom-group&quot;</span> <span style="color: #7D9029">transform</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;translate(-128,-80) scale(2)&quot;</span>&gt;...&lt;/<span style="color: #008000; font-weight: bold">g</span>&gt;
+&lt;/<span style="color: #008000; font-weight: bold">svg</span>&gt;
+</pre></div>
+</p>
+
+<p>Here, we&rsquo;ve:</p>
+
+<ul>
+<li>Shifted/<code>translate</code>d the canvas:
+
+<ul>
+<li>128 units<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Units here are defined in terms of abstract <a href="https://www.w3.org/TR/SVG2/coords.html#TermUserUnits">&ldquo;<em>user units</em>&ldquo;</a>.</span> 
+ to the <em>right</em> (i.e. leftward mouse movement).</li>
+<li>80 units to the <em>down</em> (i.e. upward mousemovemt).</li>
+</ul></li>
+<li>Zoomed/<code>scale</code>d the canvas so that the elements inside the group are displayed at <em>twice</em> their ordinary size.</li>
+</ul>
+
+<p>The <code>transform</code> attribute is quite powerful but also rather complicated. Refer to the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform">Mozilla reference page</a> or this nice write-up by <a href="https://www.sarasoueidan.com/blog/svg-coordinate-systems/">Sara Soueidan</a> for more information.</p>
+
+<hr />
+
+<h3 id="zoom-group-implementation:e218a3c29df923eed379019aa812cdd9">Zoom Group: Implementation</h3>
+
+<p>Let&rsquo;s add a zoom group to the <code>SVGCanvas</code> constructor:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> SVGCanvas(options) {
+  <span style="color: #408080; font-style: italic">// Previous...</span>
+
+  <span style="color: #408080; font-style: italic">// Canvas</span>
+  <span style="color: #408080; font-style: italic">//// Make the main container SVG</span>
+  <span style="color: #008000; font-weight: bold">this</span>.svg <span style="color: #666666">=</span> d3.select(<span style="color: #008000; font-weight: bold">this</span>.options.addTo)
+    .append(<span style="color: #BA2121">&#39;svg&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.h)
+    .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.w)
+    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;display-svg&#39;</span>);
+  <span style="color: #408080; font-style: italic">//// Add border if requested  &lt;= NOT INCLUDED IN ZOOM GROUP</span>
+  <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #008000; font-weight: bold">this</span>.options.addBorderRect) {
+    <span style="color: #008000; font-weight: bold">this</span>.svg.append(<span style="color: #BA2121">&#39;rect&#39;</span>)
+      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.h)
+      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #008000; font-weight: bold">this</span>.options.w)
+      .attr(<span style="color: #BA2121">&#39;stroke&#39;</span>, <span style="color: #BA2121">&#39;black&#39;</span>)
+      .attr(<span style="color: #BA2121">&#39;stroke-width&#39;</span>, <span style="color: #666666">4</span>)
+      .attr(<span style="color: #BA2121">&#39;opacity&#39;</span>, <span style="color: #666666">0.25</span>)
+      .attr(<span style="color: #BA2121">&#39;fill-opacity&#39;</span>, <span style="color: #666666">0.0</span>)
+      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;border-rect&#39;</span>);
+  }
+  <span style="color: #408080; font-style: italic">//// Add zoom and pan group</span>
+  <span style="color: #008000; font-weight: bold">this</span>.zoomG <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>.svg
+    .append(<span style="color: #BA2121">&#39;g&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;zoom-group&#39;</span>);
+
+  <span style="color: #408080; font-style: italic">// Rectangles</span>
+  <span style="color: #408080; font-style: italic">// More...</span>
+}
+</pre></div>
+</p>
+
+<p>Here, we&rsquo;ve append a <code>&lt;g&gt;</code> element to <code>this.svg</code> and defined a new property, <code>this.zoomG</code>. Notice that we don&rsquo;t include the border rectangle element in the zoom group. Thus, any transformations that are applied to the zoom group will not affect the border rectangle, which is what we want.</p>
+
+<p>We <em>do</em> want the rectangles that we draw to be affected by the transformations, however. To do this, we need to modify the <code>SVGCanvas.addRect.start</code> method so that the new <code>&lt;rect&gt;</code> elements are appended to the zoom group element rather than the <code>&lt;svg&gt;</code>. We can do this by changing line 11 below:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.makeAddRect <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">// Methods for adding rectangles to the svg.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  start <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>    <span style="color: #408080; font-style: italic">//Add a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>    <span style="color: #408080; font-style: italic">// 1. Get mouse location in SVG</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>    <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> self.mouseOffset();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>    self.Rect.x0 <span style="color: #666666">=</span> m.x;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>    self.Rect.y0 <span style="color: #666666">=</span> m.y;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>    <span style="color: #408080; font-style: italic">// 2. Make a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>    self.Rect.r <span style="color: #666666">=</span> self.zoomG <span style="color: #408080; font-style: italic">// &lt;= self.zoomG, NOT self.svg</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>      .append(<span style="color: #BA2121">&#39;g&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>      .append(<span style="color: #BA2121">&#39;rect&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>      .attr(<span style="color: #BA2121">&#39;x&#39;</span>, self.Rect.x0)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, self.Rect.y0)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #666666">1</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #666666">1</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;rect-main&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>    ;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>  <span style="color: #408080; font-style: italic">// More ...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>}
+</pre></div>
+</p>
+
+<p>That&rsquo;s it!</p>
+
+<h3 id="mouse-coordinates:e218a3c29df923eed379019aa812cdd9">Mouse Coordinates</h3>
+
+<p>The main thing to be aware of here is that all of this panning and zooming business will mess with your attempts to detect where the mouse click occurs. The problem is twofold: First, you want to use the mouse position to specify the location of the added rectangles relative to a single, common coordinate system.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">That is, a rectangle should have the same x/y and height/width attributes whether it is drawn at 2x zoom with a bunch of panning or 1x zoom.</span> 
+ Second, we want the information/drawing that appears on the screen to reflect whatever screwy, transformed coordinate system we&rsquo;re currently working in.</p>
+
+<p>The <em>manual</em> way of doing this is to get the mouse coordinates off of the <code>d3.event</code> object and scale and shift them:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.mouseOffset <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+  <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> d3.event;
+  m.x <span style="color: #666666">=</span> (<span style="color: #666666">-</span><span style="color: #008000; font-weight: bold">this</span>.transform.x <span style="color: #666666">+</span> m.x) <span style="color: #666666">/</span> <span style="color: #008000; font-weight: bold">this</span>.transform.k;
+  m.y <span style="color: #666666">=</span> (<span style="color: #666666">-</span><span style="color: #008000; font-weight: bold">this</span>.transform.y <span style="color: #666666">+</span> m.y) <span style="color: #666666">/</span> <span style="color: #008000; font-weight: bold">this</span>.transform.k;
+  <span style="color: #008000; font-weight: bold">return</span> m;
+}
+</pre></div>
+</p>
+
+<p>Here, <code>this.transform</code> is an <code>SVGCanvas</code> property (discussed below). The <code>x</code>, <code>y</code>, and <code>k</code> properties map to <code>transform=&quot;translate(x, y) scale(k)&quot;</code> from the <code>&lt;g&gt;</code> element.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">I&rsquo;m keeping this code around because it may come in handy later.</span> 
+</p>
+
+<p>We can do this coordinate transform <em>automatically</em> by making use of the <code>d3.mouse</code> method:</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.mouseOffset <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+  <span style="color: #008000; font-weight: bold">return</span> d3.mouse(<span style="color: #008000; font-weight: bold">this</span>.zoomG.node());
+}
+</pre></div>
+</p>
+
+<p>Here, an array (rather than object) is returned with entries <code>[x, y]</code>. The coordinates are automatically transformed relative to the specified element: the zoom group <code>&lt;g&gt;</code> (<code>this.zoomG</code>) element. Notice that I have called <code>this.zoomG.node()</code>. The <code>.node()</code> method returns the HTML block corresponding to the zoom group element.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">I still need to dig deeper into D3 to understand the reasoning behind why it is sometimes preferable to pass the node rather than the D3 object itself.</span> 
+</p>
+
+<h2 id="zoom-and-pan-methods:e218a3c29df923eed379019aa812cdd9">Zoom and Pan Methods</h2>
+
+<p>We&rsquo;ve seen that we can manipulate the canvas by manipulating the <code>transform</code> attribute. Now we&rsquo;re going to add methods and behaviors so that these manipulations will occur in response to user gestures.</p>
+
+<p>As with the <code>SVGCanvas.addRect</code> methods from part 1, I&rsquo;m going to specify zoom and pan methods in a sort-of hacky way. We&rsquo;ll add a new property&ndash;<code>SVGCanvas.zoomPan</code>&ndash;that will have methods for zooming and panning the canvas. Then we&rsquo;ll add new behaviors to the canvas that call these methods.</p>
+
+<h3 id="zoom-ing:e218a3c29df923eed379019aa812cdd9"><code>Zoom</code>ing</h3>
+
+<p>Let&rsquo;s start out by defining what should happen on zoom. Below I&rsquo;ve set up the basic structure of the <code>SVGCanvas</code> method that defines both the zooming and panning function.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Notice that we again need to be careful about setting the context. We set <code>self = this</code>, where <code>this</code> is the <code>SVGCanvas</code>.</span> 
+ The zoom function proper begins on line 6. In principle, this could be a one-liner. Among other things, a <code>zoom</code> event will return information about the shifting and scaling that results from the event.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">I&rsquo;m still a bit murky on how this works.</span> 
+ That is, it will return an <code>x</code>, <code>y</code>, and <code>k</code> that we can use to specify the zoom group&rsquo;s <code>transform</code> attribute a la <code>translate(x, y) scale(k)</code>. We can access this information via <code>d3.event.transform</code>. We&rsquo;ll store the information in the property <code>self.transform</code> for later.</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.makeZoomPan <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">// Defines zooming and panning behavior from zoom listener</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>  zoom <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>    <span style="color: #408080; font-style: italic">// What should happen when the wheel is scrolled?</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>    <span style="color: #408080; font-style: italic">// Register transformation from event</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>    self.transform <span style="color: #666666">=</span> d3.event.transform;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>    <span style="color: #408080; font-style: italic">// Modify `transform` property of zoom-group</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>    self.zoomG.attr(<span style="color: #BA2121">&#39;transform&#39;</span>, self.transform);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>    <span style="color: #408080; font-style: italic">// Go back to initial position if zoomed out.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>    <span style="color: #008000; font-weight: bold">if</span> (d3.event.transform.k <span style="color: #666666">===</span> <span style="color: #666666">1</span>) {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>      self.zoomG
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>        .transition(d3.transition() <span style="color: #408080; font-style: italic">// Make movement less jerky</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>          .duration(<span style="color: #666666">100</span>)              
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>          .ease(d3.easeLinear))
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>        .attr(<span style="color: #BA2121">&#39;transform&#39;</span>, <span style="color: #BA2121">&#39;translate(0,0) scale(1)&#39;</span>);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>      self.transform.x <span style="color: #666666">=</span> <span style="color: #666666">0</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>      self.transform.y <span style="color: #666666">=</span> <span style="color: #666666">0</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>      self.transform.k <span style="color: #666666">=</span> <span style="color: #666666">1</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">24 </span>    }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">25 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">26 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">27 </span>  <span style="color: #008000; font-weight: bold">var</span> pan <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">28 </span>    <span style="color: #408080; font-style: italic">//...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">29 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">30 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">31 </span>  self.zoomPan <span style="color: #666666">=</span> {zoom<span style="color: #666666">:</span> zoom, pan<span style="color: #666666">:</span> pan};
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">32 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">33 </span>}
+</pre></div>
+</p>
+
+<p>The next step is just to modify the <code>transform</code> attribute of the zoom group (line 11). In version 4 of D3 we can simply pass <code>d3.event.transform</code> as the argument and be done with it.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">How does that work? Here&rsquo;s my impression: The second argument of <code>self.zoomG.attr(...)</code> requires a string. When we pass an object the parser will look to see if the object has a <code>.toString</code> method. So, for example, if <code>h = 5</code> then calling <code>h.toString()</code> will return the character &ldquo;5&rdquo;. The <code>d3.event.transform.toString()</code> method returns <code>&quot;translate(&quot; + this.x + &quot;,&quot; + this.y + &quot;) scale(&quot; + this.k + &quot;)&quot;</code>. So, in short, if <code>d3.event.x = 5</code>, <code>d3.event.y = 6</code>, and <code>d3.event.k = 2</code> we get <code>translate(5,6) scale(2)</code>.</span> 
+ So the one-liner version of this is <code>self.zoomG.attr('transform', d3.event.transform)</code>.</p>
+
+<p>Now let&rsquo;s turn to the part beginning in line 14. The idea behind this block is to reset the canvas positioning whenever we&rsquo;re zoomed out completely. In short, it tests whether the scale is 1 (the minimum scaling level from <code>.scaleExtent([1, 10])</code>). If it is, we change the transform property of the zoom group element so that the translation is <code>(0,0)</code> (i.e. no translation). In lines 16-18 we use <a href="https://github.com/d3/d3-transition">D3 transitions</a> to make the canvas slide into the new position <em>quickly</em> (in 100ms) but <em>gracefully</em>. We then manually reset the properties of <code>self.transform</code> to the specified coordinates.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">In an earlier version of this code I tried resetting <code>self.transform</code> by calling <a href="https://github.com/d3/d3-zoom/blob/master/README.md#zoomTransform"><code>d3.zoomTransform(this.zoomG.node())</code></a>. This produced some odd behavior that I won&rsquo;t get into. It now occurs to me that this probably doesn&rsquo;t work because <code>d3.zoomTransform(this.zoomG.node())</code> was called at some point in the 100ms during which the smooth transition was occurring. Thus, the new <code>self.transform</code> reflected the transform at some point along the transformation point rather than at <code>x=0, y=0, k=1</code>.</span> 
+</p>
+
+<h3 id="pan-ning:e218a3c29df923eed379019aa812cdd9"><code>Pan</code>ning</h3>
+
+<p>The <code>pan</code> method will be triggered by a drag event. As with the <code>zoom</code> method the basic idea will be to modify the <code>transform</code> attribute of the zoom group element (line 9).</p>
+
+<p>What should the new <code>transform</code> be? Among other things, the <code>d3.event</code> object that is generated by a <code>drag</code> event has properties&ndash;<code>.dx</code> and <code>.dy</code>&ndash;related to how much the mouse has moved in each direction since the last time the event was triggered. We know the initial <code>transform</code> of the zoom group is from the <code>self.transform</code> property. We can then update this property using <code>d3.event.dx</code> and <code>d3.event.dy</code>.</p>
+
+<p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.makeZoomPan <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">// ...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>  
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  <span style="color: #008000; font-weight: bold">var</span> pan <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span>() {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>    self.transform.x <span style="color: #666666">+=</span> d3.event.dx;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>    self.transform.y <span style="color: #666666">+=</span> d3.event.dy;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>    <span style="color: #408080; font-style: italic">// Update Attribute</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>    d3.select(<span style="color: #BA2121">&#39;g.zoom-group&#39;</span>).attr(<span style="color: #BA2121">&#39;transform&#39;</span>, self.transform);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>  <span style="color: #408080; font-style: italic">// ...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>}
+</pre></div>
+</p>
+
+<h2 id="concluding-remarks:e218a3c29df923eed379019aa812cdd9">Concluding Remarks</h2>
+
+<p>That&rsquo;s it! To summarize, we&rsquo;ve added panning and zooming to our still-rudimentary drawing app. The main ideas that I&rsquo;ve introduced to do this were:</p>
+
+<ol>
+<li>Routing methods to handle complex events (e.g. shift + drag).</li>
+<li>Selective &ldquo;silencing&rdquo; of event handlers associated with D3 events (e.g. zoom but don&rsquo;t pan).</li>
+<li>Use of the <code>transform</code> attribute of <code>svg</code> elements.</li>
+</ol>
+
+<p>In the next part we&rsquo;ll make it possible to moving and resize rectangles that we&rsquo;ve already created.</p>
+</section>
+  <section>
+    
+
+    <footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+    <div class="custom-js">
+	
+	    <script type="text/javascript" src=https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-2/drawing-2-main.js></script>
+	
+    </div>
+    
+
+
+</body>
+</html>

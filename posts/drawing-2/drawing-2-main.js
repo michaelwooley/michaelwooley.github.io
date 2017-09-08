@@ -70,10 +70,12 @@ function SVGCanvas(options) {
       .scaleExtent([1, 10])
       .on('zoom', this.zoomPan.zoom)
     )
-    .on('.zoom', this.zoomPan.zoom)
     .on('mousedown.zoom', null)
     .on('mousemove.zoom', null)
-    .on('mouseup.zoom', null);
+    .on('mouseup.zoom', null)
+    .on('touchstart.zoom', null)
+    .on('touchmove.zoom', null)
+    .on('touchend.zoom', null);
 }
 
 
@@ -84,25 +86,27 @@ SVGCanvas.prototype.makeZoomPan = function() {
 
   zoom = function() {
     self.transform = d3.event.transform;
-
+    console.log(self.transform);
     self.zoomG.attr('transform', self.transform);
 
     // Go back to initial position if zoomed out.
-    if (d3.event.transform.k === 1) {
+    if (d3.event.transform.k === 1.0) {
+      
       self.zoomG
         .transition(d3.transition()
           .duration(100)
           .ease(d3.easeLinear))
-        .attr('transform', 'translate(0,0) scale(1, 1)');
+        .attr('transform', 'translate(0,0) scale(1)');
 
-      self.transform = d3.zoomTransform(self.zoomG.node());
+      self.transform.x = 0;
+      self.transform.y = 0;
+      self.transform.k = 1.0;
     }
   }
 
   var pan = function() {
-    var m = d3.event;
-    self.transform.x += m.dx;
-    self.transform.y += m.dy;
+    self.transform.x += d3.event.dx;
+    self.transform.y += d3.event.dy;
 
     // Update Attribute
     d3.select('g.zoom-group').attr('transform', self.transform);
@@ -116,10 +120,10 @@ SVGCanvas.prototype.makeZoomPan = function() {
 }
 
 SVGCanvas.prototype.mouseOffset = function() {
-  var m = d3.event;
-  m.x = (-this.transform.x + m.x) / this.transform.k;
-  m.y = (-this.transform.y + m.y) / this.transform.k;
-  return m;
+  // var m = d3.event;
+  // m.x = (-this.transform.x + m.x) / this.transform.k;
+  // m.y = (-this.transform.y + m.y) / this.transform.k;
+  return d3.mouse(this.zoomG.node());
 }
 
 SVGCanvas.prototype.makeAddRect = function() {
@@ -129,8 +133,8 @@ SVGCanvas.prototype.makeAddRect = function() {
     //Add a rectangle
     // 1. Get mouse location in SVG
     var m = self.mouseOffset();
-    self.Rect.x0 = m.x;
-    self.Rect.y0 = m.y;
+    self.Rect.x0 = m[0];
+    self.Rect.y0 = m[1];
     // 2. Make a rectangle
     self.Rect.r = self.zoomG //self.zoomG
       .append('g')
@@ -147,14 +151,15 @@ SVGCanvas.prototype.makeAddRect = function() {
     // 1. Get the new mouse position
     var m = self.mouseOffset();
     // 2. Update the attributes of the rectangle
-    self.Rect.r.attr('x', Math.min(self.Rect.x0, m.x))
-      .attr('y', Math.min(self.Rect.y0, m.y))
-      .attr('width', Math.abs(self.Rect.x0 - m.x))
-      .attr('height', Math.abs(self.Rect.y0 - m.y));
+    self.Rect.r.attr('x', Math.min(self.Rect.x0, m[0]))
+      .attr('y', Math.min(self.Rect.y0, m[1]))
+      .attr('width', Math.abs(self.Rect.x0 - m[0]))
+      .attr('height', Math.abs(self.Rect.y0 - m[1]));
   }
   end = function() {
     // What to do on mouseup
     self.Shapes.push(self.Rect);
+    self.Rect.r = null;
   }
 
   self.addRect = {
@@ -176,7 +181,6 @@ SVGCanvas.prototype.makeDragBehavior = function() {
     }
   }
 
-
   var drag = function() {
     if (!(self.Rect.r === null) && !(d3.event.sourceEvent.shiftKey)) {
       self.addRect.drag();
@@ -186,7 +190,7 @@ SVGCanvas.prototype.makeDragBehavior = function() {
     }
   }
 
-  var end = function() { if (!(self.Rect.r === null) &
+  var end = function() {  if (!(self.Rect.r === null) &
   !(d3.event.sourceEvent.shiftKey)) { self.addRect.end(); } if
   (d3.event.sourceEvent.shiftKey) { null; } }
 
