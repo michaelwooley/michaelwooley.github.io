@@ -1,0 +1,41 @@
+rect.rect-main {
+  stroke: #d32f2f;
+  stroke-width: 2;
+  fill-opacity: 0;
+  stroke-opacity: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+g.active rect {
+  stroke-opacity: 1;
+}
+
+div.sample-div {
+  position: block;
+}
+
+.rectEdge {
+  fill: #303f9f;
+  opacity: 0;
+}
+
+.rectEdge:hover {
+  cursor: move;
+}
+
+.rectCorner {
+  fill: #668d3c;
+  opacity: 0;
+}
+
+.rectCorner.nwse:hover {
+  cursor: nwse-resize;
+}
+
+.rectCorner.nesw:hover {
+  cursor: nesw-resize;
+}
+
+.cornerEdge.debug {
+  opacity: 0.25;
+}

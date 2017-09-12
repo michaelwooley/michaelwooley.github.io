@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Python on Michael Wooley</title>
+    <link>https://michaelwooley.github.io/categories/python/</link>
+    <description>Recent content in Python on Michael Wooley</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 11 Sep 2017 20:49:59 -0400</lastBuildDate>
+    <atom:link href="https://michaelwooley.github.io/categories/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Scraping Dynamic Web Content</title>
+      <link>https://michaelwooley.github.io/posts/scrape-dynamic-1/</link>
+      <pubDate>Mon, 11 Sep 2017 20:49:59 -0400</pubDate>
+      
+      <guid>https://michaelwooley.github.io/posts/scrape-dynamic-1/</guid>
+      <description>
+
+&lt;p&gt;I have a project in mind that is going to involve a lot of scraping from the websites of U.S. soccer leagues. While the leagues offer a lot of data about each match, we&amp;rsquo;re going to have to do some slightly non-standard tricks to get the data to load. Once that&amp;rsquo;s done we can use BeautifulSoup to extract the html elements.&lt;/p&gt;
+
+&lt;h2 id=&#34;what-needs-to-happen:cb7684d834f952e94e1ed7987bec3a1a&#34;&gt;What Needs to Happen&lt;/h2&gt;
+
+&lt;p&gt;Ultimately, I&amp;rsquo;m going to want to be scraping data from pages like &lt;a href=&#34;http://www.uslsoccer.com/newyorkredbullsii-fccincinnati-905766&#34;&gt;this&lt;/a&gt;. As you can see, this page provides a lot of information about a particular football game (Red Bulls II v. FC Cincinnati, 8/19/2017).&lt;/p&gt;
+
+&lt;p&gt;Notice that there are elements that are loading as you open the page.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;See, for example the green loading bars.&lt;/span&gt; 
+ This provides an indication that all of the data is being loaded dynamically via javascript. Indeed, if you just requested this page (e.g. with the &lt;code&gt;requests&lt;/code&gt; module) you&amp;rsquo;d find that a lot of the data elements are missing. In short:&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Problem 1.&lt;/em&gt; We need to get the javascript on the page to load.&lt;/p&gt;
+
+&lt;p&gt;Now scroll to the top of the page and reload. Let the page sit for 10 seconds so that you are certain that the page is &amp;ldquo;loaded&amp;rdquo;. Now scroll down. Notice that the load bars come back up and all of that data needs to be called. It looks like this information only loads once we scroll down! This is a smart move by whoever made this page (there&amp;rsquo;s a lot of data on the page!) but it represents a problem for us:&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Problem 2.&lt;/em&gt; Programmatically scroll the page so that the full page loads.&lt;/p&gt;
+
+&lt;h2 id=&#34;the-code:cb7684d834f952e94e1ed7987bec3a1a&#34;&gt;The Code&lt;/h2&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the full code with a leading example:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;from&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;selenium.webdriver.support.ui&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;import&lt;/span&gt; WebDriverWait
+&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;from&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;selenium.webdriver.support&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;import&lt;/span&gt; expected_conditions &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;as&lt;/span&gt; EC
+&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;from&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;selenium.webdriver.common.by&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;import&lt;/span&gt; By
+&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;from&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;selenium&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;import&lt;/span&gt; webdriver
+
+&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;ScrapeDynamic&lt;/span&gt;(&lt;span style=&#34;color: #008000&#34;&gt;object&lt;/span&gt;):
+    &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;    ScrapeDynamic: Methods for scraping dynamic webpages.&lt;/span&gt;
+
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;    Information on:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Basic concept: https://coderwall.com/p/vivfza/fetch-dynamic-web-pages-with-selenium&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Selenium Scrolling: https://stackoverflow.com/questions/20986631/how-can-i-scroll-a-web-page-using-selenium-webdriver-in-python&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Selenium waiting: http://selenium-python.readthedocs.io/waits.html&lt;/span&gt;
+
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;    Be sure to call ScrapeDynamic.stop() when you&amp;#39;re done to shut down the&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        server thing&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;__init__&lt;/span&gt;(&lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;, browserPath, browser&lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;phantom&amp;#39;&lt;/span&gt;):
+        &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Input:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            - browserPath: Path to browser .exe&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            - browser: Browser to use [&amp;#39;phantom&amp;#39;, &amp;#39;firefox&amp;#39;]. (default=&amp;#39;phantom&amp;#39;) (Add later)&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Returns:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            A ScrapeDynamic object.&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# Start the WebDriver and load the page&lt;/span&gt;
+        &lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; webdriver&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;PhantomJS(executable_path &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; BrowserPath)
+
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;getUrl&lt;/span&gt;(&lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;, url, selector):
+        &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Retrieve page source of dynamic webpage. Waits until `selector` loads to&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            return. Automatically scrolls to bottom of page to ensure that all&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            JS loads.&lt;/span&gt;
+
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Inputs:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            - url: website url&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            - selector: CSS selector&lt;/span&gt;
+
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        Returns:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;            Page source (i.e. suitable for BeautifulSoup).&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;        &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# Begin to retrieve the URL&lt;/span&gt;
+        &lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;get(url)
+        &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# Scroll to bottom to page so that it will load all elements&lt;/span&gt;
+        &lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;execute_script(&lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;window.scrollTo(0, document.body.scrollHeight);&amp;quot;&lt;/span&gt;)
+
+        &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# Wait for the dynamically loaded elements to show up&lt;/span&gt;
+        WebDriverWait(&lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd, &lt;span style=&#34;color: #666666&#34;&gt;10&lt;/span&gt;)&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;until(
+                EC&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;visibility_of_element_located((By&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;CSS_SELECTOR, selector)))
+
+        &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;page_source
+
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;stop&lt;/span&gt;(&lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;):
+        &lt;span style=&#34;color: #008000&#34;&gt;self&lt;/span&gt;&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;wd&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;quit()
+
+
+&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #19177C&#34;&gt;__name__&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;quot;__main__&amp;quot;&lt;/span&gt;:
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;from&lt;/span&gt; &lt;span style=&#34;color: #0000FF; font-weight: bold&#34;&gt;bs4&lt;/span&gt; &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;import&lt;/span&gt; BeautifulSoup
+
+    BrowserPath &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;C:/Program Files/PhantomJS/bin/phantomjs.exe&amp;#39;&lt;/span&gt; &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# Path to browser .exe&lt;/span&gt;
+    URL &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;http://www.uslsoccer.com/newyorkredbullsii-fccincinnati-905766&amp;#39;&lt;/span&gt; &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# URL to retrieve&lt;/span&gt;
+    selector &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;table.Opta-Striped.Opta-Squad&amp;#39;&lt;/span&gt; &lt;span style=&#34;color: #408080; font-style: italic&#34;&gt;# CSS element to wait for&lt;/span&gt;
+
+    R &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; ScrapeDynamic(BrowserPath)
+    html_page &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; R&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;getUrl(URL, selector)
+    R&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;stop()
+
+    soup &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; BeautifulSoup(html_page, &lt;span style=&#34;color: #BA2121&#34;&gt;&amp;#39;lxml&amp;#39;&lt;/span&gt;)
+    element &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; soup&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;select(selector)
+    &lt;span style=&#34;color: #008000&#34;&gt;print&lt;/span&gt;(element[&lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;]&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;prettify()[&lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;:&lt;span style=&#34;color: #666666&#34;&gt;1000&lt;/span&gt;])
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The basic idea is to Programmatically launch and control a web browser. We init the &lt;code&gt;ScrapeDynamic&lt;/code&gt; object by launching a browser.&lt;/p&gt;
+
+&lt;p&gt;In the &lt;code&gt;ScrapeDynamic.getURL&lt;/code&gt; we request a particular web page (&lt;code&gt;self.wd.get(url)&lt;/code&gt;). Here we&amp;rsquo;re really just opening the page like you would if you were surfing yourself.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;With a few modifications you can run this code with Firefox and the there the fact that we&amp;rsquo;re just opening the page becomes really apparent.&lt;/span&gt; 
+ In the next line we get the page to scroll to the bottom by executing one line of JavaScript. This takes care of problem 2. The only thing that we have to do is check to see if the information has loaded. This is where the &lt;code&gt;selector&lt;/code&gt; element comes in. The idea behind doing this is that the code is going to be searching for this selector. Once it spots this selector in the html source the method will return. In the example script I&amp;rsquo;ve passed CSS selector that corresponds to the table containing information about the players on each roster. Since I&amp;rsquo;m mostly going to be interested in this data I want to make sure that it has loaded before the method returns the output.&lt;/p&gt;
+
+&lt;h3 id=&#34;usage:cb7684d834f952e94e1ed7987bec3a1a&#34;&gt;Usage&lt;/h3&gt;
+
+&lt;p&gt;To use the code you&amp;rsquo;ll:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Initiate a &lt;code&gt;ScrapeDynamic&lt;/code&gt; object with the path to your web browser.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;For more info on dependencies see below.&lt;/span&gt; 
+&lt;/li&gt;
+&lt;li&gt;Call the &lt;code&gt;ScrapeDynmic.getURL&lt;/code&gt; method with arguments:
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;URL&lt;/code&gt;: The url of the page to be scraped.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;selector&lt;/code&gt;: A CSS selector discussed more below.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;Tidy up: Shut down the &lt;code&gt;ScrapeDynamic&lt;/code&gt; object.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The &lt;code&gt;ScrapeDynamic.getURL&lt;/code&gt; method will return the full html source of the page. This output is essentially what we would get if we scraped a static page with the &lt;code&gt;requests&lt;/code&gt; module. We can then pass this on to a tool like &lt;code&gt;BeautifulSoup&lt;/code&gt; to parse the elements.&lt;/p&gt;
+
+&lt;p&gt;By doing all of this setup once, we can save time when, for example, we&amp;rsquo;ll want to scrape several pages.&lt;/p&gt;
+
+&lt;h3 id=&#34;dependencies:cb7684d834f952e94e1ed7987bec3a1a&#34;&gt;Dependencies&lt;/h3&gt;
+
+&lt;p&gt;I&amp;rsquo;ve only tested this code on &lt;strong&gt;Windows 10&lt;/strong&gt; at the moment. You can see that there are certain features that assume a Windows-type system (e.g. the need for an executable argument).&lt;/p&gt;
+
+&lt;p&gt;In terms of python packages you&amp;rsquo;ll need to:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;pip install selenium&lt;/code&gt; (&lt;a href=&#34;http://selenium-python.readthedocs.io/&#34;&gt;&lt;em&gt;Selenium&lt;/em&gt;&lt;/a&gt;) Use this to set up a &amp;ldquo;webdriver&amp;rdquo;, which can take commands and send them to the browser.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;pip install bs4&lt;/code&gt; (&lt;a href=&#34;https://www.crummy.com/software/BeautifulSoup/bs4/doc/&#34;&gt;&lt;em&gt;BeautifulSoup4&lt;/em&gt;&lt;/a&gt;) Needed for the example and to manipulate any of the output returned by the &lt;code&gt;getURL&lt;/code&gt; method.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;For this I also used the &lt;a href=&#34;http://phantomjs.org/&#34;&gt;PhantomJS&lt;/a&gt; browser. It is nice because it is lightweight and designed for this sort of thing.&lt;/p&gt;
+
+&lt;h2 id=&#34;conclusion:cb7684d834f952e94e1ed7987bec3a1a&#34;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;That&amp;rsquo;s it. In future posts I&amp;rsquo;ll put this code to work to gather my data. Tomorrow I&amp;rsquo;m going to return to my drawing app with a big update.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

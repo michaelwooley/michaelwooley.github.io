@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - Scraping Dynamic Web Content</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/scrape-dynamic-1/">Scraping Dynamic Web Content</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 11, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/python">python</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/scraping">scraping</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/uls-v.-mls">ULS v. MLS</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>I have a project in mind that is going to involve a lot of scraping from the websites of U.S. soccer leagues. While the leagues offer a lot of data about each match, we&rsquo;re going to have to do some slightly non-standard tricks to get the data to load. Once that&rsquo;s done we can use BeautifulSoup to extract the html elements.</p>
+
+<h2 id="what-needs-to-happen:cb7684d834f952e94e1ed7987bec3a1a">What Needs to Happen</h2>
+
+<p>Ultimately, I&rsquo;m going to want to be scraping data from pages like <a href="http://www.uslsoccer.com/newyorkredbullsii-fccincinnati-905766">this</a>. As you can see, this page provides a lot of information about a particular football game (Red Bulls II v. FC Cincinnati, 8/19/2017).</p>
+
+<p>Notice that there are elements that are loading as you open the page.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">See, for example the green loading bars.</span> 
+ This provides an indication that all of the data is being loaded dynamically via javascript. Indeed, if you just requested this page (e.g. with the <code>requests</code> module) you&rsquo;d find that a lot of the data elements are missing. In short:</p>
+
+<p><em>Problem 1.</em> We need to get the javascript on the page to load.</p>
+
+<p>Now scroll to the top of the page and reload. Let the page sit for 10 seconds so that you are certain that the page is &ldquo;loaded&rdquo;. Now scroll down. Notice that the load bars come back up and all of that data needs to be called. It looks like this information only loads once we scroll down! This is a smart move by whoever made this page (there&rsquo;s a lot of data on the page!) but it represents a problem for us:</p>
+
+<p><em>Problem 2.</em> Programmatically scroll the page so that the full page loads.</p>
+
+<h2 id="the-code:cb7684d834f952e94e1ed7987bec3a1a">The Code</h2>
+
+<p>Here&rsquo;s the full code with a leading example:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">selenium.webdriver.support.ui</span> <span style="color: #008000; font-weight: bold">import</span> WebDriverWait
+<span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">selenium.webdriver.support</span> <span style="color: #008000; font-weight: bold">import</span> expected_conditions <span style="color: #008000; font-weight: bold">as</span> EC
+<span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">selenium.webdriver.common.by</span> <span style="color: #008000; font-weight: bold">import</span> By
+<span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">selenium</span> <span style="color: #008000; font-weight: bold">import</span> webdriver
+
+<span style="color: #008000; font-weight: bold">class</span> <span style="color: #0000FF; font-weight: bold">ScrapeDynamic</span>(<span style="color: #008000">object</span>):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    ScrapeDynamic: Methods for scraping dynamic webpages.</span>
+
+<span style="color: #BA2121; font-style: italic">    Information on:</span>
+<span style="color: #BA2121; font-style: italic">        Basic concept: https://coderwall.com/p/vivfza/fetch-dynamic-web-pages-with-selenium</span>
+<span style="color: #BA2121; font-style: italic">        Selenium Scrolling: https://stackoverflow.com/questions/20986631/how-can-i-scroll-a-web-page-using-selenium-webdriver-in-python</span>
+<span style="color: #BA2121; font-style: italic">        Selenium waiting: http://selenium-python.readthedocs.io/waits.html</span>
+
+<span style="color: #BA2121; font-style: italic">    Be sure to call ScrapeDynamic.stop() when you&#39;re done to shut down the</span>
+<span style="color: #BA2121; font-style: italic">        server thing</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    <span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">__init__</span>(<span style="color: #008000">self</span>, browserPath, browser<span style="color: #666666">=</span><span style="color: #BA2121">&#39;phantom&#39;</span>):
+        <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">        Input:</span>
+<span style="color: #BA2121; font-style: italic">            - browserPath: Path to browser .exe</span>
+<span style="color: #BA2121; font-style: italic">            - browser: Browser to use [&#39;phantom&#39;, &#39;firefox&#39;]. (default=&#39;phantom&#39;) (Add later)</span>
+<span style="color: #BA2121; font-style: italic">        Returns:</span>
+<span style="color: #BA2121; font-style: italic">            A ScrapeDynamic object.</span>
+<span style="color: #BA2121; font-style: italic">        &quot;&quot;&quot;</span>
+        <span style="color: #408080; font-style: italic"># Start the WebDriver and load the page</span>
+        <span style="color: #008000">self</span><span style="color: #666666">.</span>wd <span style="color: #666666">=</span> webdriver<span style="color: #666666">.</span>PhantomJS(executable_path <span style="color: #666666">=</span> BrowserPath)
+
+    <span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">getUrl</span>(<span style="color: #008000">self</span>, url, selector):
+        <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">        Retrieve page source of dynamic webpage. Waits until `selector` loads to</span>
+<span style="color: #BA2121; font-style: italic">            return. Automatically scrolls to bottom of page to ensure that all</span>
+<span style="color: #BA2121; font-style: italic">            JS loads.</span>
+
+<span style="color: #BA2121; font-style: italic">        Inputs:</span>
+<span style="color: #BA2121; font-style: italic">            - url: website url</span>
+<span style="color: #BA2121; font-style: italic">            - selector: CSS selector</span>
+
+<span style="color: #BA2121; font-style: italic">        Returns:</span>
+<span style="color: #BA2121; font-style: italic">            Page source (i.e. suitable for BeautifulSoup).</span>
+<span style="color: #BA2121; font-style: italic">        &quot;&quot;&quot;</span>
+        <span style="color: #408080; font-style: italic"># Begin to retrieve the URL</span>
+        <span style="color: #008000">self</span><span style="color: #666666">.</span>wd<span style="color: #666666">.</span>get(url)
+        <span style="color: #408080; font-style: italic"># Scroll to bottom to page so that it will load all elements</span>
+        <span style="color: #008000">self</span><span style="color: #666666">.</span>wd<span style="color: #666666">.</span>execute_script(<span style="color: #BA2121">&quot;window.scrollTo(0, document.body.scrollHeight);&quot;</span>)
+
+        <span style="color: #408080; font-style: italic"># Wait for the dynamically loaded elements to show up</span>
+        WebDriverWait(<span style="color: #008000">self</span><span style="color: #666666">.</span>wd, <span style="color: #666666">10</span>)<span style="color: #666666">.</span>until(
+                EC<span style="color: #666666">.</span>visibility_of_element_located((By<span style="color: #666666">.</span>CSS_SELECTOR, selector)))
+
+        <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000">self</span><span style="color: #666666">.</span>wd<span style="color: #666666">.</span>page_source
+
+    <span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">stop</span>(<span style="color: #008000">self</span>):
+        <span style="color: #008000">self</span><span style="color: #666666">.</span>wd<span style="color: #666666">.</span>quit()
+
+
+<span style="color: #008000; font-weight: bold">if</span> <span style="color: #19177C">__name__</span> <span style="color: #666666">==</span> <span style="color: #BA2121">&quot;__main__&quot;</span>:
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">bs4</span> <span style="color: #008000; font-weight: bold">import</span> BeautifulSoup
+
+    BrowserPath <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;C:/Program Files/PhantomJS/bin/phantomjs.exe&#39;</span> <span style="color: #408080; font-style: italic"># Path to browser .exe</span>
+    URL <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;http://www.uslsoccer.com/newyorkredbullsii-fccincinnati-905766&#39;</span> <span style="color: #408080; font-style: italic"># URL to retrieve</span>
+    selector <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;table.Opta-Striped.Opta-Squad&#39;</span> <span style="color: #408080; font-style: italic"># CSS element to wait for</span>
+
+    R <span style="color: #666666">=</span> ScrapeDynamic(BrowserPath)
+    html_page <span style="color: #666666">=</span> R<span style="color: #666666">.</span>getUrl(URL, selector)
+    R<span style="color: #666666">.</span>stop()
+
+    soup <span style="color: #666666">=</span> BeautifulSoup(html_page, <span style="color: #BA2121">&#39;lxml&#39;</span>)
+    element <span style="color: #666666">=</span> soup<span style="color: #666666">.</span>select(selector)
+    <span style="color: #008000">print</span>(element[<span style="color: #666666">0</span>]<span style="color: #666666">.</span>prettify()[<span style="color: #666666">0</span>:<span style="color: #666666">1000</span>])
+</pre></div>
+
+<p>The basic idea is to Programmatically launch and control a web browser. We init the <code>ScrapeDynamic</code> object by launching a browser.</p>
+
+<p>In the <code>ScrapeDynamic.getURL</code> we request a particular web page (<code>self.wd.get(url)</code>). Here we&rsquo;re really just opening the page like you would if you were surfing yourself.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">With a few modifications you can run this code with Firefox and the there the fact that we&rsquo;re just opening the page becomes really apparent.</span> 
+ In the next line we get the page to scroll to the bottom by executing one line of JavaScript. This takes care of problem 2. The only thing that we have to do is check to see if the information has loaded. This is where the <code>selector</code> element comes in. The idea behind doing this is that the code is going to be searching for this selector. Once it spots this selector in the html source the method will return. In the example script I&rsquo;ve passed CSS selector that corresponds to the table containing information about the players on each roster. Since I&rsquo;m mostly going to be interested in this data I want to make sure that it has loaded before the method returns the output.</p>
+
+<h3 id="usage:cb7684d834f952e94e1ed7987bec3a1a">Usage</h3>
+
+<p>To use the code you&rsquo;ll:</p>
+
+<ol>
+<li>Initiate a <code>ScrapeDynamic</code> object with the path to your web browser.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">For more info on dependencies see below.</span> 
+</li>
+<li>Call the <code>ScrapeDynmic.getURL</code> method with arguments:
+
+<ul>
+<li><code>URL</code>: The url of the page to be scraped.</li>
+<li><code>selector</code>: A CSS selector discussed more below.</li>
+</ul></li>
+<li>Tidy up: Shut down the <code>ScrapeDynamic</code> object.</li>
+</ol>
+
+<p>The <code>ScrapeDynamic.getURL</code> method will return the full html source of the page. This output is essentially what we would get if we scraped a static page with the <code>requests</code> module. We can then pass this on to a tool like <code>BeautifulSoup</code> to parse the elements.</p>
+
+<p>By doing all of this setup once, we can save time when, for example, we&rsquo;ll want to scrape several pages.</p>
+
+<h3 id="dependencies:cb7684d834f952e94e1ed7987bec3a1a">Dependencies</h3>
+
+<p>I&rsquo;ve only tested this code on <strong>Windows 10</strong> at the moment. You can see that there are certain features that assume a Windows-type system (e.g. the need for an executable argument).</p>
+
+<p>In terms of python packages you&rsquo;ll need to:</p>
+
+<ul>
+<li><code>pip install selenium</code> (<a href="http://selenium-python.readthedocs.io/"><em>Selenium</em></a>) Use this to set up a &ldquo;webdriver&rdquo;, which can take commands and send them to the browser.</li>
+<li><code>pip install bs4</code> (<a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/"><em>BeautifulSoup4</em></a>) Needed for the example and to manipulate any of the output returned by the <code>getURL</code> method.</li>
+</ul>
+
+<p>For this I also used the <a href="http://phantomjs.org/">PhantomJS</a> browser. It is nice because it is lightweight and designed for this sort of thing.</p>
+
+<h2 id="conclusion:cb7684d834f952e94e1ed7987bec3a1a">Conclusion</h2>
+
+<p>That&rsquo;s it. In future posts I&rsquo;ll put this code to work to gather my data. Tomorrow I&rsquo;m going to return to my drawing app with a big update.</p>
+</section>
+  <section>
+    
+
+    <footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+
+
+</body>
+</html>
