@@ -7,15 +7,15 @@
 
 
   <style>
-    
     /* For Div element */
+    
     div.sample-div {
       position: absolute;
       top: 12%;
       left: 7%;
     }
-    
     /* For script*/
+    
     rect.rect-main {
       stroke: #d32f2f;
       stroke-width: 2;
@@ -66,12 +66,9 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js"></script>
-  <script src="drawing-3-main2.js"></script>
-  
-<!--  
   <script type="text/javascript">
     function SVGCanvas(options) {
-      /*
+      /* 
        *  An SVG-based drawing app.
        *  Input:
        *   - options: An object consisting of:
@@ -129,6 +126,15 @@
       this.zoomG = this.svg
         .append('g')
         .attr('class', 'zoom-group');
+
+      this.zoomG.append('rect')
+        .attr('height', this.options.h)
+        .attr('width', this.options.w)
+        .attr('stroke', 'red')
+        .attr('stroke-width', 4)
+        .attr('opacity', 0.25)
+        .attr('fill-opacity', 0.0)
+        .attr('class', 'border-rect');
 
       // Rectangles
       this.Rect = { // Current Selection
@@ -191,13 +197,14 @@
 
         // Left border
         if (((-self.transform.x + self.options.w) / self.transform.k) > self.options.w) {
-          self.transform.x = -(self.options.w * self.transform.k) + self.options.h;
+          self.transform.x = -(self.options.w * self.transform.k) + self.options.w;
         }
 
         // Right border
         if (((self.transform.x + 0) / self.transform.k) > 0) {
           self.transform.x = 0;
         }
+
       }
 
       zoom = function() {
@@ -331,6 +338,16 @@
     /**********************************
     Dragging and resizing rectangles.
     **********************************/
+    function contains(a, obj) {
+      // See: https://stackoverflow.com/questions/237104/how-do-i-check-if-an-array-includes-an-object-in-javascript
+      for (var i = 0; i < a.length; i++) {
+        if (a[i] === obj) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function clone(selector) {
       // Clone a d3 selection. 
       // Source: https://stackoverflow.com/questions/39477740/copy-and-insert-in-d3-selection
@@ -338,99 +355,97 @@
       return d3.select(node.parentNode.insertBefore(node.cloneNode(true), node.nextSibling));
     }
 
+
     SVGCanvas.prototype.transformRect = function() {
       var self = this;
-      var groupClass, debug, rectEdge, rectCorner, g, r, p, dbWidth;
+      var groupClass, debug, g, r, p, dbWidth;
 
-      // Append helper rectEdges and rectCorners to g
-      function makeRectEdgeCorner() {
-        // Adds edges and corners to rectangle for drag move and resize.
+      var main = function() {
 
-        // "Prototype" elements
-        var proto = [
-          // Rectangular edges
-          g.append('rect')
-          .attr('class', 'rectEdge-rect cornerEdge ' + groupClass + debug),
+        r = self.Rect.r;
+        g = self.Rect.g;
+        dbWidth = self.options.rectOpt.dbWidth;
+        // Set common class
+        groupClass = self.state.id;
+        debug = self.options.debug ? (' debug') : ('');
 
-          // Circular corners - NWSE cursor
-          g.append('rect')
-          .attr('height', dbWidth)
-          .attr('width', dbWidth)
-          .attr('id', 'topright')
-          .attr('class', 'rectCorner-circ cornerEdge nwse ' + groupClass + debug),
-
-          // Circular corners - NESW cursor
-          g.append('rect')
-          .attr('height', dbWidth)
-          .attr('width', dbWidth)
-          .attr('id', 'topright')
-          .attr('class', 'rectCorner-circ cornerEdge nesw ' + groupClass + debug),
-        ];
-
-        // Create dict of edges
-        rectEdge = {
-          left: clone('.rectEdge-rect.' + groupClass),
-          right: clone('.rectEdge-rect.' + groupClass),
-          top: clone('.rectEdge-rect.' + groupClass),
-          bottom: clone('.rectEdge-rect.' + groupClass),
+        // Add data to the group element
+        var rBB = r.node().getBBox();
+        p = {
+          x: rBB.x,
+          y: rBB.y,
+          w: rBB.width,
+          h: rBB.height,
+          id: groupClass,
         };
+        g = g.data([p]);
 
-        // Create Dict of corners
-        rectCorner = {
-          topleft: clone('.nwse.' + groupClass).attr('id', 'topleft'),
-          topright: clone('.nesw.' + groupClass).attr('id', 'topright'),
-          botleft: clone('.nesw.' + groupClass).attr('id', 'botleft'),
-          botright: clone('.nwse.' + groupClass).attr('id', 'botright'),
-        };
-
-        // Remove prototype elements from DOM
-        proto.forEach(function(d, i) {
-          d.remove();
-        });
-
-        // Format size and shape of added objects.
-        setCoords();
-
-        return rectEdge, rectCorner;
+        // Add the rectangles
+        makeRectEdgeCorner();
       }
 
-      function setCoords() {
+      main();
 
-        // X Coordinates
-        r.attr('x', p.x);
-        rectEdge.left.attr('x', p.x - (dbWidth / 2));
-        rectEdge.right.attr('x', p.x + p.w - (dbWidth / 2));
-        rectEdge.top.attr('x', p.x + (dbWidth / 2));
-        rectEdge.bottom.attr('x', p.x + (dbWidth / 2));
-        rectCorner.topleft.attr('x', p.x - (dbWidth / 2));
-        rectCorner.topright.attr('x', p.x + p.w - (dbWidth / 2));
-        rectCorner.botleft.attr('x', p.x - (dbWidth / 2));
-        rectCorner.botright.attr('x', p.x + p.w - (dbWidth / 2));
+      function setCoordsData(d) {
+        // Set the coordinates of a rectangle-group
 
-        // Widths
-        r.attr('width', p.w);
-        rectEdge.left.attr('width', dbWidth);
-        rectEdge.right.attr('width', dbWidth);
-        rectEdge.top.attr('width', Math.abs(p.w - dbWidth));
-        rectEdge.bottom.attr('width', Math.abs(p.w - dbWidth));
+        var children = d3.selectAll('g.active.' + d.id);
 
-        // Y Coordinates
-        r.attr('y', p.y);
-        rectEdge.left.attr('y', p.y + (dbWidth / 2));
-        rectEdge.right.attr('y', p.y + (dbWidth / 2));
-        rectEdge.top.attr('y', p.y - (dbWidth / 2));
-        rectEdge.bottom.attr('y', p.y + p.h - (dbWidth / 2));
-        rectCorner.topleft.attr('y', p.y - (dbWidth / 2));
-        rectCorner.topright.attr('y', p.y - (dbWidth / 2));
-        rectCorner.botleft.attr('y', p.y + p.h - (dbWidth / 2));
-        rectCorner.botright.attr('y', p.y + p.h - (dbWidth / 2));
+        // Main Rectangle
+        children.select('rect.rect-main')
+          .attr('x', d.x)
+          .attr('y', d.y)
+          .attr('width', d.w)
+          .attr('height', d.h);
 
-        // Heights
-        r.attr('height', p.h);
-        rectEdge.left.attr('height', Math.abs(p.h - dbWidth));
-        rectEdge.right.attr('height', Math.abs(p.h - dbWidth));
-        rectEdge.top.attr('height', dbWidth);
-        rectEdge.bottom.attr('height', dbWidth);
+        // rectEdge.left
+        children.select('rect.rectEdge.rectEdge-left')
+          .attr('x', d.x - (dbWidth / 2))
+          .attr('y', d.y + (dbWidth / 2))
+          .attr('width', dbWidth)
+          .attr('height', Math.abs(d.h - dbWidth));
+
+        // rectEdge.right
+        children.select('rect.rectEdge.rectEdge-right')
+          .attr('x', d.x + d.w - (dbWidth / 2))
+          .attr('y', d.y + (dbWidth / 2))
+          .attr('width', dbWidth)
+          .attr('height', Math.abs(d.h - dbWidth));
+
+        // rectEdge.top
+        children.select('rect.rectEdge.rectEdge-top')
+          .attr('x', d.x + (dbWidth / 2))
+          .attr('y', d.y - (dbWidth / 2))
+          .attr('width', Math.abs(d.w - dbWidth))
+          .attr('height', dbWidth);
+
+        // rectEdge.bottom
+        children.select('rect.rectEdge.rectEdge-bottom')
+          .attr('x', d.x + (dbWidth / 2))
+          .attr('y', d.y + d.h - (dbWidth / 2))
+          .attr('width', Math.abs(d.w - dbWidth))
+          .attr('height', dbWidth);
+
+        // rectCorner.topleft
+        children.select('rect.rectCorner.rectCorner-topleft')
+          .attr('x', d.x - (dbWidth / 2))
+          .attr('y', d.y - (dbWidth / 2));
+
+        // rectCorner.topright
+        children.select('rect.rectCorner.rectCorner-topright')
+          .attr('x', d.x + d.w - (dbWidth / 2))
+          .attr('y', d.y - (dbWidth / 2));
+
+        // rectCorner.botleft
+        children.select('rect.rectCorner.rectCorner-botleft')
+          .attr('x', d.x - (dbWidth / 2))
+          .attr('y', d.y + d.h - (dbWidth / 2));
+
+        // rectCorner.botright
+        children.select('rect.rectCorner.rectCorner-botright')
+          .attr('x', d.x + d.w - (dbWidth / 2))
+          .attr('y', d.y + d.h - (dbWidth / 2))
+
       }
 
       // Add move and resize methods
@@ -438,25 +453,28 @@
         // Move the rectangle by dragging edges
 
         function start() {
-          p = g.datum();
           self.setActive(groupClass);
           self.svg.style('cursor', 'move');
         }
 
         function drag() {
 
-          // Alter Parameters
-          p.x = Math.max(0, Math.min(self.options.w - p.w, p.x + d3.event.dx));
-          p.y = Math.max(0, Math.min(self.options.h - p.h, p.y + d3.event.dy));
+          d3.selectAll('g.active')
+            .each(
+              function(d, i) {
+                // Alter Parameters
+                d.x = Math.max(0, Math.min(self.options.w - d.w, d.x + d3.event.dx));
+                d.y = Math.max(0, Math.min(self.options.h - d.h, d.y + d3.event.dy));
 
-          // Set Coordinates
-          setCoords();
+                // Set Coordinates
+                setCoordsData(d);
+              }
+            )
         }
 
         function end() {
           // Undo formatting
           self.svg.style('cursor', 'default');
-          g.data()[0] = p;
         }
 
         // What to do on drag
@@ -473,133 +491,179 @@
 
       function resizeRect() {
         // Resize the rectangle by dragging the corners
-        var bb0, id, m, dragCorners;
 
         function getDragCorners() {
           return {
-            topleft: function() {
-              p.x = Math.max(0, Math.min(bb0.x + bb0.width, m.x));
-              p.y = Math.max(0, Math.min(bb0.y + bb0.height, m.y));
-              p.w = (m.x > 0) ? Math.min(Math.abs(self.options.w - p.x), Math.abs(bb0.x + bb0.width - m.x)) : p.w;
-              p.h = (m.y > 0) ? Math.min(Math.abs(self.options.h - p.y), Math.abs(bb0.y + bb0.height - m.y)) : p.h;
+            topleft: function(d, bb0, m) {
+              d.x = Math.max(0, Math.min(bb0.x + bb0.width, m[0]));
+              d.y = Math.max(0, Math.min(bb0.y + bb0.height, m[1]));
+              d.w = (m[0] > 0) ? Math.min(Math.abs(self.options.w - d.x), Math.abs(bb0.x + bb0.width - m[0])) : d.w;
+              d.h = (m[1] > 0) ? Math.min(Math.abs(self.options.h - d.y), Math.abs(bb0.y + bb0.height - m[1])) : d.h;
             },
 
-            topright: function() {
-              p.x = Math.max(0, Math.min(bb0.x, m.x));
-              p.y = Math.max(0, Math.min(bb0.y + bb0.height, m.y));
-              p.w = (m.x > 0) ? Math.min(Math.abs(self.options.w - p.x), Math.abs(bb0.x - m.x)) : p.w;
-              p.h = (m.y > 0) ? Math.min(Math.abs(self.options.h - p.y), Math.abs(bb0.y + bb0.height - m.y)) : p.h;
+            topright: function(d, bb0, m) {
+              d.x = Math.max(0, Math.min(bb0.x, m[0]));
+              d.y = Math.max(0, Math.min(bb0.y + bb0.height, m[1]));
+              d.w = (m[0] > 0) ? Math.min(Math.abs(self.options.w - d.x), Math.abs(bb0.x - m[0])) : d.w;
+              d.h = (m[1] > 0) ? Math.min(Math.abs(self.options.h - d.y), Math.abs(bb0.y + bb0.height - m[1])) : d.h;
             },
 
-            botleft: function() {
-              p.x = Math.max(0, Math.min(bb0.x + bb0.width, m.x));
-              p.y = Math.max(0, Math.min(bb0.y, m.y));
-              p.w = (m.x > 0) ? Math.min(Math.abs(self.options.w - p.x), Math.abs(bb0.x + bb0.width - m.x)) : p.w;
-              p.h = (m.y > 0) ? Math.min(Math.abs(self.options.h - p.y), Math.abs(bb0.y - m.y)) : p.h;
+            botleft: function(d, bb0, m) {
+              d.x = Math.max(0, Math.min(bb0.x + bb0.width, m[0]));
+              d.y = Math.max(0, Math.min(bb0.y, m[1]));
+              d.w = (m[0] > 0) ? Math.min(Math.abs(self.options.w - d.x), Math.abs(bb0.x + bb0.width - m[0])) : d.w;
+              d.h = (m[1] > 0) ? Math.min(Math.abs(self.options.h - d.y), Math.abs(bb0.y - m[1])) : d.h;
             },
 
-            botright: function() {
-              p.x = Math.max(0, Math.min(bb0.x, m.x));
-              p.y = Math.max(0, Math.min(bb0.y, m.y));
-              p.w = (m.x > 0) ? Math.min(Math.abs(self.options.w - p.x), Math.abs(bb0.x - m.x)) : p.w;
-              p.h = (m.y > 0) ? Math.min(Math.abs(self.options.h - p.y), Math.abs(bb0.y - m.y)) : p.h;
+            botright: function(d, bb0, m) {
+              d.x = Math.max(0, Math.min(bb0.x, m[0]));
+              d.y = Math.max(0, Math.min(bb0.y, m[1]));
+              d.w = (m[0] > 0) ? Math.min(Math.abs(self.options.w - d.x), Math.abs(bb0.x - m[0])) : d.w;
+              d.h = (m[1] > 0) ? Math.min(Math.abs(self.options.h - d.y), Math.abs(bb0.y - m[1])) : d.h;
             }
           };
         }
 
-        function start() {
-          // Parameter data
-          p = g.datum();
-          // Get corner id
-          id = d3.select(this).attr('id');
-          // Get the initial Bounding Box
-          bb0 = r.node().getBBox();
-          // Set active
-          self.setActive(groupClass, true);
-          // Display correct cursor tip
-          var cursor = d3.select(this).classed('nwse') ? 'nwse-resize' : 'nesw-resize';
-          self.svg.style('cursor', cursor);
-          // Update dragCorners
-          dragCorners = getDragCorners();
+        var makeContainer = function(id) {
+          // Make a container, which depends on the corner (specified by `id`)
+          var dragCorners, cursor, bb0;
+
+          // Get the correct transformation function
+          dragCorners = getDragCorners()[id];
+          // Get the correct cursor
+          if (contains(['topleft', 'botright'], id)) {
+            cursor = 'nwse-resize';
+          } else {
+            cursor = 'nesw-resize';
+          }
+
+          var start = function() {
+            // Set the present group to be active (and all others inactive)
+            self.setActive(groupClass, true);
+            // Get the active groups
+            activeG = d3.selectAll('g.active');
+            // Get the initial Bounding Box
+            bb0 = r.node().getBBox();
+            // Display correct cursor tip
+            self.svg.style('cursor', cursor);
+          }
+
+          var drag = function() {
+            // Mouse position
+            m = d3.mouse(self.zoomG.node());
+            // Update parameters depending on
+            dragCorners(g.datum(), bb0, m);
+            // Set the coordinates
+            setCoordsData(g.datum());
+          }
+
+          var end = function() {
+            // Undo formatting
+            self.svg.style('cursor', 'default');
+          }
+
+          // return the drag container
+          return d3.drag()
+            .on('start', start)
+            .on('drag', drag)
+            .on('end', end);
+
         }
 
-        var drag = function() {
-          // Mouse position
-          m = d3.event;
-          // Update parameters depending on id
-          dragCorners[id]();
-          // Set the coordinates
-          setCoords();
-        }
-
-        var end = function() {
-          // Undo formatting
-          self.svg.style('cursor', 'default');
-          // Parameter data
-          g.data()[0] = p;
-        }
-
-        var dragcontainer = d3.drag()
-          .on('start', start)
-          .on('drag', drag)
-          .on('end', end);
-
+        // Make drag containers for each 
         return {
-          drag: dragcontainer,
+          makeContainer: makeContainer,
         }
       }
 
-      var main = function() {
+      // Append helper rectEdges and rectCorners to g
+      function makeRectEdgeCorner() {
+        // Adds edges and corners to rectangle for drag move and resize.
 
-        r = self.Rect.r;
-        g = self.Rect.g;
-        dbWidth = self.options.rectOpt.dbWidth;
-        // Set common class
-        groupClass = self.state.id;
-        debug = self.options.debug ? (' debug') : ('');
+        // "Prototype" elements
+        var proto = [
+          // Rectangular edges
+          g.append('rect')
+          .attr('class', 'rectEdge cornerEdge ' + groupClass + debug),
 
-        // Get parameter data
-        var rBB = r.node().getBBox();
-        p = {
-          x: rBB.x,
-          y: rBB.y,
-          w: rBB.width,
-          h: rBB.height,
-        };
-        g = g.data([p]);
+          // Circular corners - NWSE cursor
+          g.append('rect')
+          .attr('height', dbWidth)
+          .attr('width', dbWidth)
+          .attr('id', 'topright')
+          .attr('class', 'rectCorner cornerEdge nwse ' + groupClass + debug),
 
-        // Make methods
+          // Circular corners - NESW cursor
+          g.append('rect')
+          .attr('height', dbWidth)
+          .attr('width', dbWidth)
+          .attr('id', 'topright')
+          .attr('class', 'rectCorner cornerEdge nesw ' + groupClass + debug),
+        ];
+
+        // Behaviors to attach to corners and edges
         var move = moveRect();
         var resize = resizeRect();
 
-        rectEdge, rectCorner = makeRectEdgeCorner();
+        // Create Edges
+        clone('.rectEdge.' + groupClass)
+          .classed('rectEdge-left', true)
+          .call(move.drag);
+        clone('.rectEdge.' + groupClass)
+          .classed('rectEdge-right', true)
+          .call(move.drag);
+        clone('.rectEdge.' + groupClass)
+          .classed('rectEdge-top', true)
+          .call(move.drag);
+        clone('.rectEdge.' + groupClass)
+          .classed('rectEdge-bottom', true)
+          .call(move.drag);
 
-        // Add properties to edges and corners
-        rectEdge.left.call(move.drag);
-        rectEdge.right.call(move.drag);
-        rectEdge.top.call(move.drag);
-        rectEdge.bottom.call(move.drag);
+        // Create Corners
+        clone('.nwse.' + groupClass)
+          .classed('rectCorner-topleft', true)
+          .call(resize.makeContainer('topleft'));
+        clone('.nesw.' + groupClass)
+          .attr('id', 'topright')
+          .classed('rectCorner-topright', true)
+          .call(resize.makeContainer('topright'));
+        clone('.nesw.' + groupClass)
+          .attr('id', 'botleft')
+          .classed('rectCorner-botleft', true)
+          .call(resize.makeContainer('botleft'));
+        clone('.nwse.' + groupClass)
+          .attr('id', 'botright')
+          .classed('rectCorner-botright', true)
+          .call(resize.makeContainer('botright'));
 
-        rectCorner.topleft.call(resize.drag);
-        rectCorner.topright.call(resize.drag);
-        rectCorner.botleft.call(resize.drag);
-        rectCorner.botright.call(resize.drag);
+        // Remove prototype elements from DOM
+        proto.forEach(function(d, i) {
+          d.remove();
+        });
+
+        // Format size and shape of added objects.
+        setCoordsData(g.datum());
       }
-
-      main();
     }
 
     SVGCanvas.prototype.setActive = function(id, force_clear = false) {
       // Sets class to active for selected groups.
+      var deactivate = false;
 
-      // If ctrl not pressed, deactivate all others.
-      if (!d3.event.sourceEvent.ctrlKey || force_clear) {
+      // When should all other groups be deactivated?
+      //  1.A If the ctrl key is not pressed
+      //  1.B If the present element isn't already active
+      //  (Use De Morgan's Rules for this one.)
+      deactivate = deactivate || !(d3.event.sourceEvent.ctrlKey || d3.selectAll('g.' + id).classed('active'));
+      //  2. If we didn't force it to be.
+      deactivate = deactivate || force_clear;
+      // If any of these conditions met, clear the active elements.
+      if (deactivate) {
         this.svg.selectAll('g.active').classed('active', false);
       }
 
       // Add 'active' class to any 'g' element with id = id passed.
       d3.selectAll('g.' + id).classed('active', true);
-
     }
 
 
@@ -617,7 +681,7 @@
         SETUP
     **********/
     options = {
-      h: 250,
+      h: 300,
       w: 350,
       addTo: '.sample-div',
       addBorderRect: true,
@@ -625,8 +689,8 @@
     }
 
     var c = new SVGCanvas(options);
-
-  </script>-->
+    
+  </script>
 </body>
 
 </html>

@@ -1,0 +1,664 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - Drawing With D3.js Part 3: Moving and Resizing</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+	
+	    <link rel="stylesheet" href=/posts/drawing-3/main.css>
+	
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/drawing-3/">Drawing With D3.js Part 3: Moving and Resizing</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 12, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/tablereader">TableReader</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>We&rsquo;re going build on the foundation we&rsquo;ve created in posts <a href="/posts/drawing-1">1</a> and <a href="/posts/drawing-2">2</a> of this series by adding the ability to move, resize, and delete rectangles that we&rsquo;ve already added to the canvas. The basic idea will be to add additional, invisible rectangles at the corners and edges of the rectangles. We&rsquo;ll then attach behaviors to these bounding rectangles in order to resize, reshape, and delete.</p>
+
+<p>Here&rsquo;s what we&rsquo;re going to create:</p>
+
+<figure>
+<label for="main-sample" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample" class="margin-toggle"/>
+<span class="marginnote">Try hovering over the edges of rectangles and <code>ctrl + click</code> gestures. See the full set of controls and code at the <a href="https://gist.github.com/michaelwooley/b5edc61e9b9a243ca9e8b55dc46411aa">gist</a>.</span>
+<div class="sample-div"></div>
+</figure>
+
+
+<p>I&rsquo;m going to tackle this in the following set of steps:</p>
+
+<ol>
+<li>Change the basic structure of the code by:
+
+<ul>
+<li>Adding the notion of a <strong>state</strong>, which will contain information about what sort of rectangles we&rsquo;re adding.</li>
+<li>Adding a notion of <strong>active</strong> rectangles.</li>
+</ul></li>
+<li>Append a full complement of rectangles to the corners and edges of each added rectangle. We will use these elements to detect events.</li>
+<li>Add the ability to <strong>delete</strong> <em>several</em> rectangles at once. This will draw on our notion of <em>active</em> rectangles, which I will discuss later.</li>
+<li>Attach <strong>resize</strong> and <strong>move</strong> behaviors to our elements.</li>
+</ol>
+
+<p>Okay, that&rsquo;s a lot to do in one post. I&rsquo;m going to be a bit more sketchy than in previous posts and focus attention on what I consider to be the most important parts.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Of course, if you&rsquo;re reading this and really want to figure out what&rsquo;s going on but can&rsquo;t please feel free to get in touch!</span> 
+</p>
+
+<h2 id="modifying-the-old-to-accommodate-the-new:648b6abe57ff61375f3b845700219895">Modifying the Old to Accommodate the New</h2>
+
+<p>I&rsquo;m going to start out by discussing what parts of our old code we need to change so that we can work in the new code.</p>
+
+<h3 id="defining-a-canvas-state:648b6abe57ff61375f3b845700219895">Defining a Canvas &ldquo;<code>state</code>&ldquo;</h3>
+
+<p>We&rsquo;re going to add a notion of a &ldquo;state&rdquo; to the canvas element. This element will come in handy when we start to make the canvas elements more elaborate and extract data from them. For now, though, it will just come in handy when we need to do things like name elements.</p>
+
+<p>Within the <code>SVGCanvas</code> constructor let&rsquo;s create a state like so:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> SVGCanvas(options) {
+  <span style="color: #408080; font-style: italic">// Previous ...</span>
+
+  <span style="color: #408080; font-style: italic">// Set the state (elaborate on more later)</span>
+  <span style="color: #008000; font-weight: bold">this</span>.state <span style="color: #666666">=</span> {
+    type<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Table&#39;</span>,
+    color<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;#d32f2f&#39;</span>,
+    count<span style="color: #666666">:</span> <span style="color: #666666">0</span>,
+    <span style="color: #008000; font-weight: bold">class</span><span style="color: #666666">:</span> <span style="color: #BA2121">&#39;rect-table&#39;</span>,
+    id<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Table-0&#39;</span>,
+  }
+
+  <span style="color: #408080; font-style: italic">// more ...</span>
+}
+</pre></div>
+
+
+<p>As you can see, this is just an object that contains some information that looks sort of arbitrary. Indeed, for now, you should just think of all of this &lsquo;Table&rsquo; talk as a arbitrary name that we&rsquo;ll give our rectangle.</p>
+
+<h3 id="alterations-to-addrect:648b6abe57ff61375f3b845700219895">Alterations to <code>addRect</code></h3>
+
+<p>We need to add and modify the methods that we use to add rectangles (contained within the <code>SVGCanvas.addRect</code> methods) to add resize, move, and delete functionality.</p>
+
+<h4 id="using-the-state:648b6abe57ff61375f3b845700219895">Using the <code>state</code></h4>
+
+<p>For today, we&rsquo;ll use the <code>SVGCanvas.state</code> property to define attributes of the added rectangles in the <code>SVGCanvas.addRect</code> methods. In particular, in <code>SVGCanvas.addRect.start</code> we&rsquo;ll attach classes of <code>state.id</code> to both the rectangle and the group that it is contained within. We&rsquo;ll also update the <code>state.id</code> and <code>state.count</code> in <code>SVGCanvas.addRect.end</code>:</p>
+
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 1 </span>SVGCanvas.prototype.makeAddRect <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 2 </span>  <span style="color: #408080; font-style: italic">// Previous...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 3 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 4 </span>  start <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 5 </span>    <span style="color: #408080; font-style: italic">//Add a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 6 </span>    <span style="color: #408080; font-style: italic">// 1. Get mouse location in SVG</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 7 </span>    <span style="color: #008000; font-weight: bold">var</span> m <span style="color: #666666">=</span> self.mouseOffset();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 8 </span>    x0 <span style="color: #666666">=</span> m[<span style="color: #666666">0</span>];
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px"> 9 </span>    y0 <span style="color: #666666">=</span> m[<span style="color: #666666">1</span>];
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">10 </span>    <span style="color: #408080; font-style: italic">// 2. Add a new group</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">11 </span>    self.Rect.g <span style="color: #666666">=</span> self.zoomG
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">12 </span>      .append(<span style="color: #BA2121">&#39;g&#39;</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">13 </span>      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;g-rect &#39;</span> <span style="color: #666666">+</span> self.state.id);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">14 </span>    <span style="color: #408080; font-style: italic">// 3. Make a rectangle</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">15 </span>    self.Rect.r <span style="color: #666666">=</span> self.Rect.g
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">16 </span>      .append(<span style="color: #BA2121">&#39;rect&#39;</span>) <span style="color: #408080; font-style: italic">// An SVG `rect` element</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">17 </span>      .attr(<span style="color: #BA2121">&#39;x&#39;</span>, x0) <span style="color: #408080; font-style: italic">// Position at mouse location</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">18 </span>      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, y0)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">19 </span>      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #666666">1</span>) <span style="color: #408080; font-style: italic">// Make it tiny</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">20 </span>      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #666666">1</span>)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">21 </span>      .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;rect-main &#39;</span> <span style="color: #666666">+</span> self.state.<span style="color: #008000; font-weight: bold">class</span> <span style="color: #666666">+</span> <span style="color: #BA2121">&#39; &#39;</span> <span style="color: #666666">+</span> self.state.id)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">22 </span>      .style(<span style="color: #BA2121">&#39;stroke&#39;</span>, self.state.color)
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">23 </span>      .style(<span style="color: #BA2121">&#39;fill&#39;</span>, <span style="color: #BA2121">&#39;none&#39;</span>);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">24 </span>    <span style="color: #408080; font-style: italic">// 4. Make it active.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">25 </span>    self.setActive(self.state.id);
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">26 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">27 </span>  drag <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {...}
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">28 </span>  end <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">29 </span>    <span style="color: #408080; font-style: italic">// What to do on mouseup</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">30 </span>    <span style="color: #408080; font-style: italic">// Add Rectangle Transformation Methods</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">31 </span>    self.transformRect();
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">32 </span>    <span style="color: #408080; font-style: italic">// Clear out rect.</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">33 </span>    self.Shapes[self.state.id] <span style="color: #666666">=</span> self.Rect;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">34 </span>    <span style="color: #408080; font-style: italic">// Update count and id</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">35 </span>    self.state.count <span style="color: #666666">+=</span> <span style="color: #666666">1</span>;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">36 </span>    self.state.id <span style="color: #666666">=</span> self.state.type <span style="color: #666666">+</span> <span style="color: #BA2121">&#39;-&#39;</span> <span style="color: #666666">+</span> self.state.count;
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">37 </span>  }
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">38 </span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">39 </span>  <span style="color: #408080; font-style: italic">// more...</span>
+<span style="background-color: #f0f0f0; padding: 0 5px 0 5px">40 </span>}
+</pre></div>
+
+
+<h4 id="active-groups:648b6abe57ff61375f3b845700219895">Active Groups</h4>
+
+<p>In line 25 we called a new method, <code>self.setActive</code>, using the new rectangle&rsquo;s <code>id</code> as the argument. We&rsquo;ll discuss the idea of active groups in more detail below. One immediate effect of being an active group is that the rectangle&rsquo;s color is brighter.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">In particular, we&rsquo;re shifting the rectangle&rsquo;s <code>stroke-opacity</code> attribute from 0.5 to 1. The CSS styling for this part is a bit more detailed than previously (but still relatively simple).</span> 
+</p>
+
+<h4 id="adding-rectangle-transformation-methods:648b6abe57ff61375f3b845700219895">Adding Rectangle Transformation Methods</h4>
+
+<p>In line 31 we called a new method, <code>self.transformRect</code>. This is the method that we&rsquo;re going to use to attach all of the resize and move behaviors below.</p>
+
+<h2 id="rectangle-groups:648b6abe57ff61375f3b845700219895">Rectangle Groups</h2>
+
+<p>We&rsquo;re going to want our rectangles to react to gestures at the edges and corners. However, we can only <em>explicitly</em> attach behaviors to an entire <code>&lt;rect&gt;</code> element, not to edges and corners. To get around this we&rsquo;re going to add several invisible rectangles at the corners and edges of each rectangle that is drawn. We&rsquo;ll then attach behaviors to these elements. The downside of this strategy is that we now have to keep track of many more elements than previously. To deal with this, we&rsquo;ll organize these elements into groups.</p>
+
+<p>Here&rsquo;s some sample html of what the rectangle group will look like:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #408080; font-style: italic">&lt;!--  The Group --&gt;</span>
+&lt;<span style="color: #008000; font-weight: bold">g</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;g-rect Table-0 active&quot;</span>&gt;
+  <span style="color: #408080; font-style: italic">&lt;!--  The visible rectangle --&gt;</span>
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;59&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;139&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;90&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;67&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rect-main rect-table Table-0&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  
+  <span style="color: #408080; font-style: italic">&lt;!-- Hidden Rectangles on each edge of visible rectangle --&gt;</span>
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectEdge cornerEdge Table-0 rectEdge-bottom&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;63&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;201&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;81&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectEdge cornerEdge Table-0 rectEdge-top&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;63.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;134.0&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;81.0&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectEdge cornerEdge Table-0 rectEdge-right&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;145.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;143.0&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;58&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectEdge cornerEdge Table-0 rectEdge-left&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;54.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;143.0&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;58&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  
+  <span style="color: #408080; font-style: italic">&lt;!-- Hidden Rectangles at each corner of visible rectangle --&gt;</span>
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectCorner cornerEdge nwse Table-0 rectCorner-botright&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;145.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;201.0&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectCorner cornerEdge nwse Table-0 rectCorner-topleft&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;54.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;134.0&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectCorner cornerEdge nesw Table-0 rectCorner-botleft&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;54.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;201.0&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+  &lt;<span style="color: #008000; font-weight: bold">rect</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;9&quot;</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;rectCorner cornerEdge nesw Table-0 rectCorner-topright&quot;</span> <span style="color: #7D9029">x</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;145.0&quot;</span> <span style="color: #7D9029">y</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;134.0&quot;</span>&gt;&lt;/<span style="color: #008000; font-weight: bold">rect</span>&gt;
+&lt;/<span style="color: #008000; font-weight: bold">g</span>&gt;
+</pre></div>
+
+<p>I have inserted a special &ldquo;debug&rdquo; flag into the code so that it is easy to see these &ldquo;hidden&rdquo; rectangles:</p>
+
+<figure>
+<label for="main-sample-2" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample-2" class="margin-toggle"/>
+<span class="marginnote">This demo features the same code as the original demo but now the bounding rectangles are visible.</span>
+<div class="sample-div-2"></div>
+</figure>
+
+
+<h3 id="adding-and-handling-the-rectangle-group:648b6abe57ff61375f3b845700219895">Adding and Handling The Rectangle Group</h3>
+
+<p>We&rsquo;re going to want all of these hidden rectangles to move along with the main rectangle. To do this we&rsquo;re going to use a two-step approach. First, we&rsquo;ll add some data to the group element containing information about the bounding box of the main (visible) rectangle. Then, we&rsquo;ll define a function that sets the coordinates of each element in the group (i.e. visible, edge, and corner rectangles) as a function of this data. Any time we want to modify the rectangle, then, we&rsquo;ll update the data and call the coordinate-setting function.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">You might be wondering why I didn&rsquo;t just use the group <code>transform</code> attribute that I discussed in detail in part 2. The reason is that&ndash;ultimately&ndash;I&rsquo;m going to want all of the rectangle groups to be on the same coordinate system so that I can extract data from them and compare rectangles. Thus, it makes sense to change the actual and not just apparent position of the rectangles.</span> 
+</p>
+
+<p>Here is a taste of the <code>SVGCanvas.transformRect</code> method, which we call each time a new rectangle is added. You can see that we get the current rectangle and group; we then add the data (<code>p = {...}</code>) to the group element. The <code>main</code> sub-method finishes by calling another sub-method (<code>makeRectEdgeCorner</code>), which adds the hidden bounding rectangles.</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.transformRect <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+  <span style="color: #008000; font-weight: bold">var</span> groupClass, debug, g, r, p, dbWidth;
+
+  <span style="color: #008000; font-weight: bold">var</span> main <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+
+    r <span style="color: #666666">=</span> self.Rect.r;
+    g <span style="color: #666666">=</span> self.Rect.g;
+    dbWidth <span style="color: #666666">=</span> self.options.rectOpt.dbWidth;
+    <span style="color: #408080; font-style: italic">// Set common class</span>
+    groupClass <span style="color: #666666">=</span> self.state.id;
+    debug <span style="color: #666666">=</span> self.options.debug <span style="color: #666666">?</span> (<span style="color: #BA2121">&#39; debug&#39;</span>) <span style="color: #666666">:</span> (<span style="color: #BA2121">&#39;&#39;</span>);
+
+    <span style="color: #408080; font-style: italic">// Add data to the group element</span>
+    <span style="color: #008000; font-weight: bold">var</span> rBB <span style="color: #666666">=</span> r.node().getBBox();
+    p <span style="color: #666666">=</span> {
+      x<span style="color: #666666">:</span> rBB.x,
+      y<span style="color: #666666">:</span> rBB.y,
+      w<span style="color: #666666">:</span> rBB.width,
+      h<span style="color: #666666">:</span> rBB.height,
+      id<span style="color: #666666">:</span> groupClass,
+    };
+    g <span style="color: #666666">=</span> g.data([p]);
+
+    <span style="color: #408080; font-style: italic">// Add the hidden bounding rectangles</span>
+    makeRectEdgeCorner();
+  }
+
+  main();
+
+  <span style="color: #008000; font-weight: bold">function</span> setCoordsData(d) {
+    <span style="color: #408080; font-style: italic">// Set the coordinates of a rectangle-group</span>
+
+    <span style="color: #008000; font-weight: bold">var</span> children <span style="color: #666666">=</span> d3.selectAll(<span style="color: #BA2121">&#39;g.active.&#39;</span> <span style="color: #666666">+</span> d.id);
+
+    <span style="color: #408080; font-style: italic">// Main Rectangle</span>
+    children.select(<span style="color: #BA2121">&#39;rect.rect-main&#39;</span>)
+      .attr(<span style="color: #BA2121">&#39;x&#39;</span>, d.x)
+      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, d.y)
+      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, d.w)
+      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, d.h);
+
+    <span style="color: #408080; font-style: italic">// rectEdge.left</span>
+    children.select(<span style="color: #BA2121">&#39;rect.rectEdge.rectEdge-left&#39;</span>)
+      .attr(<span style="color: #BA2121">&#39;x&#39;</span>, d.x <span style="color: #666666">-</span> (dbWidth <span style="color: #666666">/</span> <span style="color: #666666">2</span>))
+      .attr(<span style="color: #BA2121">&#39;y&#39;</span>, d.y <span style="color: #666666">+</span> (dbWidth <span style="color: #666666">/</span> <span style="color: #666666">2</span>))
+      .attr(<span style="color: #BA2121">&#39;width&#39;</span>, dbWidth)
+      .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #008000">Math</span>.abs(d.h <span style="color: #666666">-</span> dbWidth));
+
+    ...
+  }
+
+  <span style="color: #408080; font-style: italic">// Add move and resize methods</span>
+  <span style="color: #008000; font-weight: bold">function</span> moveRect() {...}
+  }
+
+  <span style="color: #008000; font-weight: bold">function</span> resizeRect() {
+    <span style="color: #408080; font-style: italic">// Resize the rectangle by dragging the corners</span>
+
+    <span style="color: #008000; font-weight: bold">function</span> getDragCorners() {...}
+
+    <span style="color: #008000; font-weight: bold">var</span> makeContainer <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (id) {...}
+
+    <span style="color: #408080; font-style: italic">// Make drag containers for each </span>
+    <span style="color: #008000; font-weight: bold">return</span> {
+      makeContainer<span style="color: #666666">:</span> makeContainer,
+    }
+  }
+
+  <span style="color: #408080; font-style: italic">// Append helper rectEdges and rectCorners to g</span>
+  <span style="color: #008000; font-weight: bold">function</span> makeRectEdgeCorner() {...}
+}
+</pre></div>
+
+<h3 id="setting-coordinates:648b6abe57ff61375f3b845700219895">Setting Coordinates</h3>
+
+<p>Notice the snippet of the function <code>setCoordsData</code> in the code block above. This is the method that will be called to update the coordinates (i.e. <code>x</code>, <code>y</code>, <code>height</code>, <code>width</code>) of rectangles given the group dataset <code>d</code>. It is a long function because we&rsquo;re altering attributes in nine different elements (one visible, four edges, and four corners). In the end, though, the only part that requires a bit of thought is figuring out what the coordinates of the bounding rectangles ought to be in relation to the main rectangle.</p>
+
+<p>The basic idea is to find the child elements of the group pertaining to each shape. With the main rectangle the coordinates can be updated straightforwardly. The bounding rectangle on the left edge has coordinates that are relatively-straightforward functions of the main rectangle&rsquo;s coordinates.</p>
+
+<h2 id="moving-and-resizing-rectangles:648b6abe57ff61375f3b845700219895">Moving and Resizing Rectangles</h2>
+
+<p>We define methods for moving and resizing the rectangles within <code>SVGCanvas.transformRect</code>. As alluded to above, the basic strategy in both cases will be to 1.) register a mouse movement, 2.) update the group data elements (<code>x</code>, <code>y</code>, <code>height</code>, <code>width</code>), and 3.) calling the <code>setCoordsData</code> to actually move the elements.</p>
+
+<p>A new element of this code is that we&rsquo;re going to update the &ldquo;<code>active</code>&rdquo; status of each rectangle group when a move or resize occurs (just like when we add a new rectangle). I decided to make the rectangle movements something that occurs to all active rectangles (i.e. they move together). Rectangle resizes, however, only occur for the rectangle that the mouse is currently hovering over. This difference partly has to do with how the code is written at the moment. However, I also think that this behavior is more natural.</p>
+
+<p>Both of these behaviors are appended to the relevant bounding rectangles within the <code>makeRectEdgeCorner</code> sub-method.</p>
+
+<h3 id="moving:648b6abe57ff61375f3b845700219895">Moving</h3>
+
+<p>We can move the rectangle by attaching a dragging behavior to the edge bounding rectangles. As with the <code>addRect</code> method from part 1, we make a <code>moveRect</code> method by defining functions specifying what should occur in the beginning, middle, and end of the drag.</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> moveRect() {
+  <span style="color: #408080; font-style: italic">// Move the rectangle by dragging edges</span>
+  <span style="color: #008000; font-weight: bold">var</span> activeG;
+
+  <span style="color: #008000; font-weight: bold">function</span> start() {
+    self.setActive(groupClass);
+    self.svg.style(<span style="color: #BA2121">&#39;cursor&#39;</span>, <span style="color: #BA2121">&#39;move&#39;</span>);
+    activeG <span style="color: #666666">=</span> d3.selectAll(<span style="color: #BA2121">&#39;g.active&#39;</span>);
+  }
+
+  <span style="color: #008000; font-weight: bold">function</span> drag() {
+
+    activeG.each(
+        <span style="color: #008000; font-weight: bold">function</span> (d, i) {
+          <span style="color: #408080; font-style: italic">// Alter Parameters</span>
+          d.x <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(self.options.w <span style="color: #666666">-</span> d.w, d.x <span style="color: #666666">+</span> d3.event.dx));
+          d.y <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(self.options.h <span style="color: #666666">-</span> d.h, d.y <span style="color: #666666">+</span> d3.event.dy));
+
+          <span style="color: #408080; font-style: italic">// Set Coordinates</span>
+          setCoordsData(d);
+        }
+      )
+  }
+
+  <span style="color: #008000; font-weight: bold">function</span> end() {
+    <span style="color: #408080; font-style: italic">// Undo formatting</span>
+    self.svg.style(<span style="color: #BA2121">&#39;cursor&#39;</span>, <span style="color: #BA2121">&#39;default&#39;</span>);
+  }
+
+  <span style="color: #408080; font-style: italic">// What to do on drag</span>
+  <span style="color: #008000; font-weight: bold">var</span> dragcontainer <span style="color: #666666">=</span> d3.drag()
+    .on(<span style="color: #BA2121">&#39;start&#39;</span>, start)
+    .on(<span style="color: #BA2121">&#39;drag&#39;</span>, drag)
+    .on(<span style="color: #BA2121">&#39;end&#39;</span>, end);
+
+  <span style="color: #008000; font-weight: bold">return</span> {
+    drag<span style="color: #666666">:</span> dragcontainer,
+  }
+}
+</pre></div>
+
+<p>The <code>start</code> method simply adds the clicked rectangle group to the set of &ldquo;active&rdquo; groups. Concretely, this means that the <code>&lt;g&gt;</code> element now has the class &ldquo;<code>active</code>&rdquo;. We then collect all of the active group elements in a variable, <code>activeG</code>.</p>
+
+<p>Some new techniques are introduced in the <code>drag</code> method. When a drag occurs we use the <code>.each(...)</code> method to carry out a function on <em>each</em> of the elements in <code>activeG</code>. The <code>.each</code> call gives us variables <code>d</code> and <code>i</code>, which pertain to the group data and element count (i.e. fifth out of six active elements).</p>
+
+<p>We update the data with new <code>x</code> and <code>y</code> coordinates for the rectangle. The coordinate updates are written so that the element cannot exceed the boundaries of the <code>&lt;svg&gt;</code> element. Because the data object is mutable the <code>x</code> and <code>y</code> coordinates of the group data element are updated automatically.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">That is, we don&rsquo;t need to have a line like, <code>d3.select(this).data = d</code> within the <code>.each(...)</code> call. For more on mutable objects see part 1 of this series.</span> 
+</p>
+
+<p>We then call <code>setCoordsData(d)</code> to update the location of the rectangles in the group. The drag event <code>end</code>s by undoing some of the styling that we added at the beginning.</p>
+
+<h3 id="resizing:648b6abe57ff61375f3b845700219895">Resizing</h3>
+
+<p>The <code>resizeRect</code> sub-method is used to drag and resize the rectangle group. It was a whole lot of fun because the new rectangle coordinates depend on the corner on which the user clicks. Two examples of these delightful coordinate changes can be seen in <code>getDragCorners</code>, a helper function. They account for both 1.) whether the mouse has exited the svg and 2.) whether the rectangle has been dragged back on top of itself.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">For example, when the bottom-left corner is dragged so that it is the top-right corner</span> 
+</p>
+
+<p>The main code in <code>makeContainer</code> follows the now-familiar pattern to specify a drag behavior.</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> resizeRect() {
+  <span style="color: #408080; font-style: italic">// Resize the rectangle by dragging the corners</span>
+
+  <span style="color: #008000; font-weight: bold">function</span> getDragCorners() {
+    <span style="color: #008000; font-weight: bold">return</span> {
+      topleft<span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">function</span> (d, bb0, m) {
+        d.x <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(bb0.x <span style="color: #666666">+</span> bb0.width, m[<span style="color: #666666">0</span>]));
+        d.y <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(bb0.y <span style="color: #666666">+</span> bb0.height, m[<span style="color: #666666">1</span>]));
+        d.w <span style="color: #666666">=</span> (m[<span style="color: #666666">0</span>] <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) <span style="color: #666666">?</span> <span style="color: #008000">Math</span>.min(<span style="color: #008000">Math</span>.abs(self.options.w <span style="color: #666666">-</span> d.x), <span style="color: #008000">Math</span>.abs(bb0.x <span style="color: #666666">+</span> bb0.width <span style="color: #666666">-</span> m[<span style="color: #666666">0</span>])) <span style="color: #666666">:</span> d.w;
+        d.h <span style="color: #666666">=</span> (m[<span style="color: #666666">1</span>] <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) <span style="color: #666666">?</span> <span style="color: #008000">Math</span>.min(<span style="color: #008000">Math</span>.abs(self.options.h <span style="color: #666666">-</span> d.y), <span style="color: #008000">Math</span>.abs(bb0.y <span style="color: #666666">+</span> bb0.height <span style="color: #666666">-</span> m[<span style="color: #666666">1</span>])) <span style="color: #666666">:</span> d.h;
+      },
+
+      topright<span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">function</span> (d, bb0, m) {
+        d.x <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(bb0.x, m[<span style="color: #666666">0</span>]));
+        d.y <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(<span style="color: #666666">0</span>, <span style="color: #008000">Math</span>.min(bb0.y <span style="color: #666666">+</span> bb0.height, m[<span style="color: #666666">1</span>]));
+        d.w <span style="color: #666666">=</span> (m[<span style="color: #666666">0</span>] <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) <span style="color: #666666">?</span> <span style="color: #008000">Math</span>.min(<span style="color: #008000">Math</span>.abs(self.options.w <span style="color: #666666">-</span> d.x), <span style="color: #008000">Math</span>.abs(bb0.x <span style="color: #666666">-</span> m[<span style="color: #666666">0</span>])) <span style="color: #666666">:</span> d.w;
+        d.h <span style="color: #666666">=</span> (m[<span style="color: #666666">1</span>] <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) <span style="color: #666666">?</span> <span style="color: #008000">Math</span>.min(<span style="color: #008000">Math</span>.abs(self.options.h <span style="color: #666666">-</span> d.y), <span style="color: #008000">Math</span>.abs(bb0.y <span style="color: #666666">+</span> bb0.height <span style="color: #666666">-</span> m[<span style="color: #666666">1</span>])) <span style="color: #666666">:</span> d.h;
+      },
+
+      botleft<span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">function</span> (d, bb0, m) {...},
+
+      botright<span style="color: #666666">:</span> <span style="color: #008000; font-weight: bold">function</span> (d, bb0, m) {...}
+    };
+  }
+
+  <span style="color: #008000; font-weight: bold">var</span> makeContainer <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (id) {
+    <span style="color: #408080; font-style: italic">// Make a container, which depends on the corner (specified by `id`)</span>
+    <span style="color: #008000; font-weight: bold">var</span> dragCorners, cursor, bb0;
+
+    <span style="color: #408080; font-style: italic">// Get the correct transformation function</span>
+    dragCorners <span style="color: #666666">=</span> getDragCorners()[id];
+    <span style="color: #408080; font-style: italic">// Get the correct cursor</span>
+    <span style="color: #008000; font-weight: bold">if</span> (contains([<span style="color: #BA2121">&#39;topleft&#39;</span>, <span style="color: #BA2121">&#39;botright&#39;</span>], id)) {
+      cursor <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;nwse-resize&#39;</span>;
+    } <span style="color: #008000; font-weight: bold">else</span> {
+      cursor <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;nesw-resize&#39;</span>;
+    }
+
+    <span style="color: #008000; font-weight: bold">var</span> start <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+      <span style="color: #408080; font-style: italic">// Set the present group to be active</span>
+      self.setActive(groupClass, <span style="color: #008000; font-weight: bold">false</span>);
+      <span style="color: #408080; font-style: italic">// Get the active groups</span>
+      activeG <span style="color: #666666">=</span> d3.selectAll(<span style="color: #BA2121">&#39;g.active&#39;</span>);
+      <span style="color: #408080; font-style: italic">// Get the initial Bounding Box</span>
+      bb0 <span style="color: #666666">=</span> r.node().getBBox();
+      <span style="color: #408080; font-style: italic">// Display correct cursor tip</span>
+      self.svg.style(<span style="color: #BA2121">&#39;cursor&#39;</span>, cursor);
+    }
+
+    <span style="color: #008000; font-weight: bold">var</span> drag <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+      <span style="color: #408080; font-style: italic">// Mouse position</span>
+      m <span style="color: #666666">=</span> d3.mouse(self.zoomG.node());
+      <span style="color: #408080; font-style: italic">// Update parameters depending on</span>
+      dragCorners(g.datum(), bb0, m);
+      <span style="color: #408080; font-style: italic">// Set the coordinates</span>
+      setCoordsData(g.datum());
+    }
+
+    <span style="color: #408080; font-style: italic">// ....EXCLUDING CODE:</span>
+    <span style="color: #408080; font-style: italic">//... end() and make container</span>
+  }
+  <span style="color: #408080; font-style: italic">//... Return Make drag containers for each </span>
+}
+</pre></div>
+
+<p>The <code>makeContainer</code> method requires an argument, <code>id</code>, which specifies the corner for which the behavior will apply. With this info the method can get the correct entry in <code>makeDragBehavior</code>, which will determine how the group data is updated. The only other thing that is idiosyncratic across corners is the correct cursor styling.</p>
+
+<p>In <code>makeRectDrag</code> we can then specify the behavior on a given corner (e.g. the topleft) by writing something along the lines of:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>d3.select(<span style="color: #BA2121">&#39;rect.topleft&#39;</span>)
+  .call(resize.makeContainer(<span style="color: #BA2121">&#39;topleft&#39;</span>));
+</pre></div>
+
+<h2 id="odds-and-ends:648b6abe57ff61375f3b845700219895">Odds and Ends</h2>
+
+<h3 id="handling-active-rectangle-groups:648b6abe57ff61375f3b845700219895">Handling Active Rectangle Groups</h3>
+
+<p>Here I&rsquo;m going to discuss the method that handles this designation. When adding, moving, or resizing a rectangle we&rsquo;ve called the <code>setActive</code> method. Let&rsquo;s discuss exactly what that does.</p>
+
+<p>Here is the code:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.setActive <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (id, force_clear <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">false</span>) {
+  <span style="color: #408080; font-style: italic">// Sets class to active for selected groups.</span>
+  <span style="color: #008000; font-weight: bold">var</span> deactivate <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">false</span>;
+
+  <span style="color: #408080; font-style: italic">// When should all other groups be deactivated?</span>
+  <span style="color: #408080; font-style: italic">//  1.A If the ctrl key is not pressed</span>
+  <span style="color: #408080; font-style: italic">//  1.B If the present element isn&#39;t already active</span>
+  <span style="color: #408080; font-style: italic">//  (Use De Morgan&#39;s Rules for this one.)</span>
+  deactivate <span style="color: #666666">=</span> deactivate <span style="color: #666666">||</span> <span style="color: #666666">!</span>(d3.event.sourceEvent.ctrlKey <span style="color: #666666">||</span> d3.selectAll(<span style="color: #BA2121">&#39;g.&#39;</span> <span style="color: #666666">+</span> id).classed(<span style="color: #BA2121">&#39;active&#39;</span>));
+  <span style="color: #408080; font-style: italic">//  2. If we didn&#39;t force it to be.</span>
+  deactivate <span style="color: #666666">=</span> deactivate <span style="color: #666666">||</span> force_clear;
+  <span style="color: #408080; font-style: italic">// If any of these conditions met, clear the active elements.</span>
+  <span style="color: #008000; font-weight: bold">if</span> (deactivate) {
+    <span style="color: #008000; font-weight: bold">this</span>.svg.selectAll(<span style="color: #BA2121">&#39;g.active&#39;</span>).classed(<span style="color: #BA2121">&#39;active&#39;</span>, <span style="color: #008000; font-weight: bold">false</span>);
+  }
+
+  <span style="color: #408080; font-style: italic">// Add &#39;active&#39; class to any &#39;g&#39; element with id = id passed.</span>
+  d3.selectAll(<span style="color: #BA2121">&#39;g.&#39;</span> <span style="color: #666666">+</span> id).classed(<span style="color: #BA2121">&#39;active&#39;</span>, <span style="color: #008000; font-weight: bold">true</span>);
+}
+</pre></div>
+
+<p>There are two parts:</p>
+
+<ol>
+<li>Determine if the &ldquo;active&rdquo; designation should be removed from the groups that are currently &ldquo;active&rdquo;. Removal depends on:
+
+<ul>
+<li>Whether the <code>ctrl</code> key is pressed (don&rsquo;t remove if it is).</li>
+<li>If we&rsquo;re clicking an already-active rectangle.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">And <code>ctrl</code> is not clicked.</span> 
+ Again, this halts removal.</li>
+<li>If we&rsquo;ve&hellip;uh&hellip;forced a removal via the argument <code>force_clear</code>.</li>
+</ul></li>
+<li>Add the &ldquo;active&rdquo; designation to the <code>&lt;g&gt;</code> element that has class <code>id</code>. Given the way in which <code>id</code> is used in the current code, there will be a unique <code>&lt;g&gt;</code> element with this class.</li>
+</ol>
+
+<h3 id="delete-and-other-keydown-events:648b6abe57ff61375f3b845700219895">&ldquo;Delete&rdquo; and Other Keydown Events</h3>
+
+<p>We created another new prototype method (<code>SVGCanvas.keydownEventHandlers</code>) that will serve to listen for keydown events. In the <code>SVGCanvas</code> constructor we attach this behavior with the line <code>d3.select('body').on('keydown', this.keydownEventHandlers);</code>. Notice that the behavior is attached to the <em>body</em> element of the html.</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.keydownEventHandlers <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+  <span style="color: #408080; font-style: italic">// Event handler for keydown events</span>
+
+  <span style="color: #408080; font-style: italic">// Press &#39;Delete&#39; to remove all active groups.</span>
+  <span style="color: #008000; font-weight: bold">if</span> (d3.event.key <span style="color: #666666">===</span> <span style="color: #BA2121">&#39;Delete&#39;</span>) {
+    d3.selectAll(<span style="color: #BA2121">&#39;g.active&#39;</span>).remove();
+  }
+}
+</pre></div>
+
+<p>A leading example of this sort of behavior involves deleting all &ldquo;active&rdquo; rectangle groups when the delete key is pressed. This can be done easily by checking if the pressed key is <code>'Delete'</code> then removing all <code>&lt;g&gt;</code> elements with class <code>active</code>.</p>
+
+<h3 id="modified-zoom-and-pan-behavior:648b6abe57ff61375f3b845700219895">Modified Zoom-and-Pan Behavior</h3>
+
+<p>In part 2 of this series I toyed around with ways of ensuring that our &ldquo;drawing&rdquo; doesn&rsquo;t venture too far off of the <code>&lt;svg&gt;</code> element. For example, if we zoom in, move the mouse, and zoom back out we would like to be viewing the same drawing.</p>
+
+<p>I was never completely satisfied with the &ldquo;solution&rdquo; from part 2 (a sometimes-jerky transition back to square one). Now I think I&rsquo;ve found a superior alternative.</p>
+
+<p>In short, any time a zoom or pan event occurs, we&rsquo;re going to call a function that checks whether the proposed <code>d3.event.transform</code> would transform us out of the <code>&lt;svg&gt;</code>. If it would, then the transform is modified so that we stick at the boundary. The principles underlying the code are quite similar to those used to check whether we were resizing or moving the rectangle out of bounds.</p>
+
+<p>The new function is called <code>checkBounds</code> and it is contained within the <code>SVGCanvas.makeZoomPan</code> method. It basically consists in testing a lot of boundary conditions and modifying the transform accordingly.</p>
+
+<p>An example of the new behavior is that it is impossible to pan when completely zoomed out; panning would only drag in the areas that are off the svg.</p>
+
+<h2 id="conclusion:648b6abe57ff61375f3b845700219895">Conclusion</h2>
+
+<p>There are still a lot of drawing features that could be added. For example, it would be nice to have a way to undo/redo actions and select elements with a lasso-like tool.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">To implement undo/redo we could create a &ldquo;history&rdquo; of past actions. For each action (e.g. add, resize, move, delete) we could create a sub-method that undoes the action. At the end of each action, then, we&rsquo;d append this &ldquo;undo&rdquo; sub-method to the undo history.</span> 
+ We could also use the code that we&rsquo;ve just created for rectangles as a basis for adding additional shapes.</p>
+
+<p>At this point, however, we have the minimum <em>drawing</em> functionality that will be needed to carry out the application that I have in mind. In the next two posts I&rsquo;m going to move to thinking of ways to add and extract data from the drawing. In particular, I&rsquo;m going to be interested in specifying and viewing bounding boxes around elements of printed tables from (for example) the <a href="https://babel.hathitrust.org/cgi/pt?id=uc2.ark:/13960/t2h70nf5h;view=1up;seq=6;size=75">Census of Manufacturers</a>.</p>
+</section>
+  <section>
+    
+
+    
+
+<footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+    <div class="custom-js">
+	
+	    <script type="text/javascript" src=https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-3/drawing-3-main.js></script>
+	
+    </div>
+    
+
+
+</body>
+</html>

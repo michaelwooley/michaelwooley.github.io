@@ -260,15 +260,7 @@
 </pre></div>
 </p>
 
-<p>Now, we can translate, scale, skew, or rotate all of these elements <em>simultaneously</em> by manipulating the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform"><code>transform</code></a> attribute of <code>&lt;g class=&quot;zoom-group&quot;&gt;</code>. Consider:<figure>
-<label for="g_transform" class="margin-toggle">&#8853;</label>
-<input type="checkbox" id="g_transform" class="margin-toggle"/>
-<span class="marginnote">
-    <img src="/posts/drawing-2/media/g_transform.gif">
-    Panning and zooming affects all elements in the canvas. However, only the <code>transform</code> attribute of the <code>&lt;g&gt;</code> element changes. Notice that the <code>&lt;rect&gt;</code> element does not change.
-</span>
-</figure>
-</p>
+<p>Now, we can translate, scale, skew, or rotate all of these elements <em>simultaneously</em> by manipulating the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform"><code>transform</code></a> attribute of <code>&lt;g class=&quot;zoom-group&quot;&gt;</code>. Consider:</p>
 
 <p><div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>&lt;<span style="color: #008000; font-weight: bold">svg</span> <span style="color: #7D9029">height</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span> <span style="color: #7D9029">width</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;250&quot;</span>&gt;
   &lt;<span style="color: #008000; font-weight: bold">g</span> <span style="color: #7D9029">class</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;zoom-group&quot;</span> <span style="color: #7D9029">transform</span><span style="color: #666666">=</span><span style="color: #BA2121">&quot;translate(-128,-80) scale(2)&quot;</span>&gt;...&lt;/<span style="color: #008000; font-weight: bold">g</span>&gt;
@@ -282,14 +274,21 @@
 <li>Shifted/<code>translate</code>d the canvas:
 
 <ul>
-<li>128 units<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
-<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
-<span class="sidenote">Units here are defined in terms of abstract <a href="https://www.w3.org/TR/SVG2/coords.html#TermUserUnits">&ldquo;<em>user units</em>&ldquo;</a>.</span> 
- to the <em>right</em> (i.e. leftward mouse movement).</li>
+<li>128 units to the <em>right</em> (i.e. leftward mouse movement).</li>
 <li>80 units to the <em>down</em> (i.e. upward mousemovemt).</li>
 </ul></li>
 <li>Zoomed/<code>scale</code>d the canvas so that the elements inside the group are displayed at <em>twice</em> their ordinary size.</li>
 </ul>
+
+<p><figure>
+<label for="g_transform" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="g_transform" class="margin-toggle"/>
+<span class="marginnote">
+    <img src="/posts/drawing-2/media/g_transform.gif">
+    Panning and zooming affects all elements in the canvas. However, only the <code>transform</code> attribute of the <code>&lt;g&gt;</code> element changes. Notice that the <code>&lt;rect&gt;</code> element does not change.
+</span>
+</figure>
+</p>
 
 <p>The <code>transform</code> attribute is quite powerful but also rather complicated. Refer to the <a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform">Mozilla reference page</a> or this nice write-up by <a href="https://www.sarasoueidan.com/blog/svg-coordinate-systems/">Sara Soueidan</a> for more information.</p>
 
@@ -499,7 +498,9 @@
   <section>
     
 
-    <footer class="page-footer">
+    
+
+<footer class="page-footer">
   <hr>
   
   
@@ -534,6 +535,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
 
 
 <script>

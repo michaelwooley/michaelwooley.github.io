@@ -1,26 +1,16 @@
+h4 {
+  font-size: 1.3rem;
+}
+
+
 /*
 Sharing Buttons
 */
-div.share-buttons {
-    position: fixed;
-    bottom: 10px;
-    left: 0;
-    width: 10%;
-    
+div#at4-share {
+  opacity: 0.25;
 }
 
-div.share-buttons ul {
-    list-style-type: none;
-    margin: 0;
-    text-align: center;
+div#at4-share a{
+  opacity: 0.95;
 }
 
-div.share-buttons li {
-    padding: 0;
-    margin: 0;
-}
-
-div.share-buttons li a {
-    text-decoration: none;
-    background: transparent;
-}
