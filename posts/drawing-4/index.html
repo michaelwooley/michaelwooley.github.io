@@ -1,0 +1,520 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - Drawing With D3.js Part 4: Data Extraction</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+	
+	    <link rel="stylesheet" href=/posts/drawing-4/main.css>
+	
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/drawing-4/">Drawing With D3.js Part 4: Data Extraction</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 15, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">D3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/drawing">Drawing</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/tablereader">TableReader</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>In the fourth installment of this series I&rsquo;m going to focus on extracting data from our drawing. What are we trying to do? Suppose that we have a picture of a table on our canvas. We&rsquo;ll draw a bunch of bounding boxes/rectangles around different elements of the canvas (e.g. a &ldquo;row&rdquo;-type bounding box around a row). When we&rsquo;re done annotating the table we&rsquo;ll hit &ldquo;submit&rdquo; and the program will extract information about the bounding boxes and put them in a data structure that we can use later. This is much easier to understand with an example.</p>
+
+<p>Here&rsquo;s what we&rsquo;re going to create:</p>
+
+<figure>
+<label for="main-sample" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample" class="margin-toggle"/>
+<span class="marginnote">See the full set of controls and code at the <a href="https://gist.github.com/michaelwooley/98fc0def4c581fe86f53a4d86fe75504">gist</a>. Believe it or not, that actually was the first good example table that I came across! <br><em>Image Source:</em> Jones, Hugh R. &ldquo;The Perils and Protection of Infant Life.&rdquo; <em>Journal of the Royal Statistical Society</em> 57, no. 1 (1894): 1-103. (via <a href="https://babel.hathitrust.org/cgi/pt?id=njp.32101068976792;seq=133">HathiTrust</a>)</span>
+<div class="sample-div"></div>
+</figure>
+
+
+<p>As you can see, we&rsquo;ve made a good deal of progress towards creating an image annotation program. With the data that we&rsquo;re extracting we could begin to train a neural network to extract the data from these old tables.<label for="overdue-explain" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="overdue-explain" class="margin-toggle"/>
+<span class="marginnote">I&rsquo;m overdue for a post that gives a big picture idea about what this project is all about.</span>
+</p>
+
+<p>What do we need to add relative to our end-product from <a href="/posts/drawing-3/">Part 3</a>?</p>
+
+<ol>
+<li>Add functionality to handle image input.</li>
+<li>Add a &ldquo;data extraction&rdquo; method for pulling bounding box data from the canvas.</li>
+<li>Introduce some additional formatting to add buttons and controls.</li>
+</ol>
+
+<p>I will warn you that the code has become somewhat&hellip; (what&rsquo;s the word?) <em>convoluted</em>. Before any additional posts extend this code I will probably spend some time rewriting it so that it is more modular. Besides making the code easier to understand, it will also make it easier to add and extend new features. Due to this, I will in this post mostly focus on elements of the new methods and spend less time on how they (currently) fit into the current code structure.</p>
+
+<h2 id="the-base-image:4e048ec189f37fde3524c915d7fe71a9">The Base Image</h2>
+
+<p>Ultimately, we want to extract data about the bounding boxes of elements in a &ldquo;base&rdquo; image.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">For example, the base image in the above example is the table.</span> 
+ To do this correctly we&rsquo;ll need to take some care in handling this base image. In particular, we&rsquo;ll need to make sure that the coordinates from the SVG that we draw on are correctly transformed to the coordinates of the underlying image. The main &ldquo;trick&rdquo; will be to store the original size information about the image as data that can be called on later.</p>
+
+<p>Here&rsquo;s the current code for loading an image given an argument <code>arg</code>, which is equal to the image&rsquo;s url:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.loadImage <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (arg) {
+  <span style="color: #408080; font-style: italic">// Load an image to the canvas.</span>
+  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+
+  <span style="color: #408080; font-style: italic">//// Add zoom and pan group</span>
+  self.zoomG <span style="color: #666666">=</span> self.svg
+    .append(<span style="color: #BA2121">&#39;g&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;zoom-group&#39;</span>)
+  <span style="color: #408080; font-style: italic">//// Adding</span>
+  self.img <span style="color: #666666">=</span> self.zoomG.append(<span style="color: #BA2121">&#39;image&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;href&#39;</span>, arg)
+    .attr(<span style="color: #BA2121">&#39;width&#39;</span>, <span style="color: #BA2121">&#39;98%&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;height&#39;</span>, <span style="color: #BA2121">&#39;98%&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;x&#39;</span>, <span style="color: #BA2121">&#39;1%&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;y&#39;</span>, <span style="color: #BA2121">&#39;1%&#39;</span>)
+    .call(<span style="color: #008000; font-weight: bold">function</span> () {
+      <span style="color: #408080; font-style: italic">// Call this function to get size attributes for the </span>
+      <span style="color: #408080; font-style: italic">// displayed and actual image.</span>
+      <span style="color: #008000; font-weight: bold">var</span> image <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">new</span> Image();      <span style="color: #408080; font-style: italic">// Create a new image </span>
+      image.onload <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {  <span style="color: #408080; font-style: italic">// What should happen when the image is loaded</span>
+        imgBB <span style="color: #666666">=</span> self.img.node().getBBox();
+        <span style="color: #008000; font-weight: bold">var</span> d <span style="color: #666666">=</span> {};
+        d.height <span style="color: #666666">=</span> image.naturalHeight;
+        d.width <span style="color: #666666">=</span> image.naturalWidth;
+        <span style="color: #408080; font-style: italic">// Get x/y coordinates and scaling:</span>
+        <span style="color: #008000; font-weight: bold">if</span> (d.height <span style="color: #666666">&gt;</span> d.width) {
+          d.scale <span style="color: #666666">=</span> (imgBB.height <span style="color: #666666">/</span> d.height);
+          d.x <span style="color: #666666">=</span> (self.options.w <span style="color: #666666">-</span> d.scale <span style="color: #666666">*</span> d.width) <span style="color: #666666">/</span> <span style="color: #666666">2</span>;
+          d.y <span style="color: #666666">=</span> imgBB.y;
+        } <span style="color: #008000; font-weight: bold">else</span> {
+          d.scale <span style="color: #666666">=</span> (imgBB.width <span style="color: #666666">/</span> d.width);
+          d.x <span style="color: #666666">=</span> imgBB.x;
+          d.y <span style="color: #666666">=</span> (self.options.h <span style="color: #666666">-</span> d.scale <span style="color: #666666">*</span> d.height) <span style="color: #666666">/</span> <span style="color: #666666">2</span>;
+        }
+        <span style="color: #408080; font-style: italic">// Reformat image attributes</span>
+        self.img
+          .attr(<span style="color: #BA2121">&#39;width&#39;</span>, d.scale <span style="color: #666666">*</span> d.width)
+          .attr(<span style="color: #BA2121">&#39;height&#39;</span>, d.scale <span style="color: #666666">*</span> d.height)
+          .attr(<span style="color: #BA2121">&#39;x&#39;</span>, d.x)
+          .attr(<span style="color: #BA2121">&#39;y&#39;</span>, d.y);
+        <span style="color: #408080; font-style: italic">// Assign as data</span>
+        self.img.data <span style="color: #666666">=</span> [d];
+      }
+      image.src <span style="color: #666666">=</span> arg;        <span style="color: #408080; font-style: italic">// Load the image by specifying an image source</span>
+    });
+};
+</pre></div>
+
+<p>The basic idea is to load the image as an <code>&lt;image&gt;</code> within the <code>&lt;svg&gt;</code>. Since the image is contained within the zoom group, it will expand and pan with the rest of the canvas.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">In this version of the code the zoom group (i.e. <code>self.zoomG</code>) is created within this method. This is a first pass at making it possible to add and toggle between multiple images at once.</span> 
+</p>
+
+<p>It is easy to specify that the image be resized to fit the canvas area (via, e.g., <code>.attr('width', '98%')</code>). While this approach creates an image that looks good, it gives us no indication of the actual size of the original image.  We can do this via a <code>.call()</code>. If we just create an <code>&lt;img&gt;</code> element (i.e. not inside the <code>&lt;svg&gt;</code>) then this image will have properties related to its <code>naturalHeight</code> and <code>naturalWidth</code>. Once we know these elements, we back out the <code>scale</code>&ndash;the size of the original image relative to the image on screen&ndash;as well as the <code>x</code> and <code>y</code> coordinates of the image on the screen relative to the SVG element. In doing so we need to check whether the image is vertically- (i.e. height &gt; width) or horizontally-oriented via <code>if (d.height &gt; d.width)</code>. This is important because <code>imgBB.height</code> and <code>imgBB.width</code> will <em>appear</em> to be equal. This seemingly-odd behavior comes from the fact that we set both  <code>height</code> and <code>width</code> attributes initially to 98%.</p>
+
+<p>We finish the <code>image.onload</code> function by setting the image attributes to numbers from percentages (a safety measure) and by assigning the <code>d</code> object to be part of the image&rsquo;s data.</p>
+
+<h2 id="data-extraction-and-handling:4e048ec189f37fde3524c915d7fe71a9">Data Extraction and Handling</h2>
+
+<p>This section is going to come in two parts. First, we&rsquo;re going to talk about extracting the data and organizing it. Then, we&rsquo;ll talk about the methods used to preview the data selections. We&rsquo;ll call each of these new methods when the user hits the &ldquo;Submit&rdquo; button.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">The new buttons are discussed in the next section.</span> 
+</p>
+
+<h3 id="data-extraction-and-structure:4e048ec189f37fde3524c915d7fe71a9">Data Extraction and Structure</h3>
+
+<p>We&rsquo;re going to start out by creating a JSON-like data object that contains information about the image and the bounding boxes. The code is fairly straightforward:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.dataCompile <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+  <span style="color: #408080; font-style: italic">// A function for compiling all of the data on the canvas into a</span>
+  <span style="color: #408080; font-style: italic">//  json data structure.</span>
+  <span style="color: #408080; font-style: italic">// </span>
+  <span style="color: #408080; font-style: italic">// FUTURE: </span>
+  <span style="color: #408080; font-style: italic">//  More metadata</span>
+  <span style="color: #408080; font-style: italic">//  Accomodate more than one image.</span>
+  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+  <span style="color: #008000; font-weight: bold">var</span> out <span style="color: #666666">=</span> [];
+
+  <span style="color: #408080; font-style: italic">// One file for each image (will have more in future).</span>
+  <span style="color: #408080; font-style: italic">//// Initialize object</span>
+  <span style="color: #008000; font-weight: bold">var</span> out_i <span style="color: #666666">=</span> {
+    meta<span style="color: #666666">:</span> {},
+    bb<span style="color: #666666">:</span> {}
+  };
+  <span style="color: #408080; font-style: italic">//// Get image bounding box.</span>
+  <span style="color: #008000; font-weight: bold">var</span> imgBB <span style="color: #666666">=</span> self.img.node().getBBox();
+  <span style="color: #408080; font-style: italic">// Get Metadata - Add more later.</span>
+  <span style="color: #408080; font-style: italic">//// File name w/ path</span>
+  out_i.meta.href <span style="color: #666666">=</span> self.img.attr(<span style="color: #BA2121">&#39;href&#39;</span>);
+  <span style="color: #408080; font-style: italic">//// File size</span>
+  out_i.meta.height <span style="color: #666666">=</span> self.img.data[<span style="color: #666666">0</span>].height;
+  out_i.meta.width <span style="color: #666666">=</span> self.img.data[<span style="color: #666666">0</span>].width;
+  <span style="color: #408080; font-style: italic">//// Common Name/Identifier</span>
+  <span style="color: #408080; font-style: italic">// Get bounding boxes</span>
+  self.zoomG.selectAll(<span style="color: #BA2121">&#39;g.g-rect&#39;</span>)
+    .each(<span style="color: #008000; font-weight: bold">function</span> (d, i) {
+      <span style="color: #408080; font-style: italic">// Retrieve rectangle bounding boxes _relative to image_.</span>
+      <span style="color: #408080; font-style: italic">// Follows convention from VOC2008: </span>
+      <span style="color: #408080; font-style: italic">// http://host.robots.ox.ac.uk/pascal/VOC/voc2008/HTMLdoc/voc.HTML#SECTION00092000000000000000</span>
+      <span style="color: #008000; font-weight: bold">var</span> d2 <span style="color: #666666">=</span> {};
+      d2.xmin <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(d.x <span style="color: #666666">-</span> imgBB.x, <span style="color: #666666">0</span>) <span style="color: #666666">/</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      d2.ymin <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.max(d.y <span style="color: #666666">-</span> imgBB.y, <span style="color: #666666">0</span>) <span style="color: #666666">/</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      d2.xmax <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.min(d.x <span style="color: #666666">-</span> imgBB.x <span style="color: #666666">+</span> d.w, imgBB.width) <span style="color: #666666">/</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      d2.ymax <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.min(d.y <span style="color: #666666">-</span> imgBB.y <span style="color: #666666">+</span> d.h, imgBB.height) <span style="color: #666666">/</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      d2.type <span style="color: #666666">=</span> d.type;
+      out_i.bb[d.id] <span style="color: #666666">=</span> d2;
+    });
+  <span style="color: #408080; font-style: italic">// Push onto full dataset.</span>
+  out.push(out_i);
+
+  <span style="color: #008000; font-weight: bold">return</span> out;
+}
+</pre></div>
+
+<p>We&rsquo;re going to have an array (<code>out</code>) that contains an object for each image (there is only one at the moment). The basic structure of the data is:</p>
+
+<ul>
+<li><code>out_i</code>: A data object for an image.
+
+<ul>
+<li><code>.meta</code>: Metadata about the image:</li>
+<li><code>.href</code>: Image Source</li>
+<li><code>.height</code>: Image natural height.</li>
+<li><code>.width</code>: Image natural width.</li>
+<li><code>.bb</code>: Bounding box data objects:</li>
+<li><code>.xmin</code>, <code>.ymin</code>, <code>.xmax</code>, <code>.ymax</code>: Bounding coordinates.</li>
+<li><code>.type</code>: Type of bounding box.</li>
+</ul></li>
+</ul>
+
+<p>The <code>type</code> of the bounding box will be something like &ldquo;table&rdquo;, &ldquo;row&rdquo;, &ldquo;column&rdquo;, &ldquo;number&rdquo;, etc. It is controlled by <code>SVGCanvas.state</code>, of which more on below.</p>
+
+<p>Notice how we needed to use the natural image dimensions, location, and the scaling parameters (stored in the <code>img</code> data) in order to ensure that our bounding boxed correspond to the original image and not just what we saw on the screen. The <code>Math.max</code> and <code>Math.min</code> calls account for cases where the rectangle was drawn within the canvas but off the base image.</p>
+
+<h3 id="check-displaying-the-data:4e048ec189f37fde3524c915d7fe71a9">Check: Displaying The Data</h3>
+
+<p>We can check whether the bounding box data is correct by creating a function that displays the bounding boxes. The <code>SVGCanvas.previewSelections</code> method does just that. Here is a snippet of the code:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>SVGCanvas.prototype.previewSelections <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (d) {
+  <span style="color: #408080; font-style: italic">// Make a table to preview the selections made above.</span>
+  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+
+  <span style="color: #408080; font-style: italic">// More....</span>
+  <span style="color: #408080; font-style: italic">// - Load into a new window</span>
+  <span style="color: #408080; font-style: italic">// - Create Table and headers</span>
+
+  <span style="color: #408080; font-style: italic">// Cycle through output.</span>
+  <span style="color: #008000; font-weight: bold">for</span> (<span style="color: #008000; font-weight: bold">var</span> ii <span style="color: #666666">=</span> <span style="color: #666666">0</span>; ii <span style="color: #666666">&lt;</span> d.length; ii<span style="color: #666666">++</span>) {
+    <span style="color: #008000; font-weight: bold">for</span> (<span style="color: #008000; font-weight: bold">var</span> bb <span style="color: #008000; font-weight: bold">in</span> d[ii].bb) {
+
+      <span style="color: #408080; font-style: italic">// Get the data</span>
+      <span style="color: #008000; font-weight: bold">var</span> d_i <span style="color: #666666">=</span> d[ii].bb[bb];
+      <span style="color: #408080; font-style: italic">// Set the height and width</span>
+      <span style="color: #008000; font-weight: bold">var</span> w <span style="color: #666666">=</span> (d_i.xmax <span style="color: #666666">-</span> d_i.xmin) <span style="color: #666666">*</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      <span style="color: #008000; font-weight: bold">var</span> h <span style="color: #666666">=</span> (d_i.ymax <span style="color: #666666">-</span> d_i.ymin) <span style="color: #666666">*</span> self.img.data[<span style="color: #666666">0</span>].scale;
+      <span style="color: #408080; font-style: italic">// Make the row</span>
+      <span style="color: #008000; font-weight: bold">var</span> row <span style="color: #666666">=</span> tbody.append(<span style="color: #BA2121">&#39;tr&#39;</span>);
+      <span style="color: #408080; font-style: italic">// Append the image</span>
+      <span style="color: #008000; font-weight: bold">var</span> canvas <span style="color: #666666">=</span> row.append(<span style="color: #BA2121">&#39;td&#39;</span>)
+        .append(<span style="color: #BA2121">&#39;canvas&#39;</span>)
+        .attr(<span style="color: #BA2121">&#39;width&#39;</span>, w)
+        .attr(<span style="color: #BA2121">&#39;height&#39;</span>, h);
+      <span style="color: #008000; font-weight: bold">var</span> ctx <span style="color: #666666">=</span> canvas.node().getContext(<span style="color: #BA2121">&quot;2d&quot;</span>);
+      <span style="color: #408080; font-style: italic">// ~~!!! ONLY WORKING ON CHROME !!!~~</span>
+      ctx.drawImage(self.img.node(), 
+                    d_i.xmin, d_i.ymin, 
+                    d_i.xmax <span style="color: #666666">-</span> d_i.xmin, d_i.ymax <span style="color: #666666">-</span> d_i.ymin, 
+                    <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, w, h);
+      <span style="color: #408080; font-style: italic">// Append other info</span>
+      <span style="color: #408080; font-style: italic">// ...</span>
+    }
+  }
+}
+</pre></div>
+
+<p>The initial steps (which aren&rsquo;t shown) create a new page and start an HTML table. I decided to create a new page to make it easy to compare the displayed bounding boxes with the selections on the canvas.</p>
+
+<p>The <code>for</code> loop then cycles through each of the bounding boxes in the data that was just generated in <code>SVGCanvas.dataCompile</code>. The main thing to observe is the creation of the preview boxes. To create the cropped selection we draw a new HTML <code>canvas</code> object in one of the table cells. We begin by appending a <code>&lt;canvas&gt;</code> element that is the same height and width as the cell and getting its context. The important line is <code>ctx.drawImage</code>. The arguments for that method are:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+</pre></div>
+
+<p>Where:</p>
+
+<ul>
+<li><code>image</code> is the image to draw.</li>
+<li><code>sx</code>/<code>sy</code> are the upper-left/starting <code>x</code>/<code>y</code> coordinate of the cropped image.</li>
+<li><code>sWidth</code>/<code>sHeight</code> are the width/height of the cropped image.</li>
+<li><code>dx</code>/<code>dy</code> are the starting <code>x</code>/<code>y</code> coordinates in the destination canvas.</li>
+<li><code>dWidth</code>/<code>dHeight</code> are the width/height of the image in the destination canvas.</li>
+</ul>
+
+<p>Basically, this call is going out to the original image and drawing the pixels specified in the <code>sx</code>, <code>sy</code>, <code>sWidth</code>, and <code>sHeight</code> parameters. That is, these parameters refer to coordinates in the original base image, not the SVG that we created previously. Therefore, this constitutes a valid test for whether our bounding box coordinates are correct with respect to the original image.</p>
+
+<hr />
+
+<h4 id="note-browser-compatibility:4e048ec189f37fde3524c915d7fe71a9">Note: Browser Compatibility</h4>
+
+<p>All of the above works well in Chrome. When I tested the code in Firefox I found that there was a problem related to the <code>ctx.drawImage()</code> call. In short, it appears that Firefox cannot take an SVG <code>&lt;image&gt;</code> element as the <code>image</code> argument whereas Chrome can. Otherwise the code should work well on other browsers.</p>
+
+<hr />
+
+<h2 id="buttons-and-visual-organization:4e048ec189f37fde3524c915d7fe71a9">Buttons and Visual Organization</h2>
+
+<p>For the first time we need to actually add buttons to control what is happening on the canvas. In order to do this I created a simple button utility for toggling between multiple choices. The mainly did this to get more experience in creating elements and to avoid having to reload Bootstrap JavaScript every time the page is loaded.</p>
+
+<h3 id="button-toggling:4e048ec189f37fde3524c915d7fe71a9">Button Toggling</h3>
+
+<p>The button toggling utility is a standalone file.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">The full code can be found at this <a href="https://gist.github.com/michaelwooley/b486bc069e417395dbc421c21b49ffbe">gist</a>.</span> 
+ Its dependencies are <a href="https://v4-alpha.getbootstrap.com/">Bootstrap CSS</a> and <a href="https://github.com/d3/d3">D3.js</a>.</p>
+
+<p>The usage is designed to be simple. The user inputs an object containing:</p>
+
+<ul>
+<li>Information about each choice in the form of an Array.</li>
+<li>A CSS selector for the DOM element that the button should be appended to</li>
+<li>A callback function to be called each time the button is pressed. The callback function takes one argument, which is the name of the button that was selected. (E.g. if &ldquo;Table&rdquo; is pressed, then the argument &ldquo;Table&rdquo; is passed to the function).</li>
+</ul>
+
+<p>Here, I used this code to create the dropdown list. The options consist in each type of annotation that we can add to the canvas. The callback function switches the canvas <code>state</code>.</p>
+
+<p>Here&rsquo;s the basic idea:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #408080; font-style: italic">// Initialize the set of possible states</span>
+self.stateData <span style="color: #666666">=</span> [{
+      name<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Table&#39;</span>,
+      color<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;#d32f2f&#39;</span>,
+      count<span style="color: #666666">:</span> <span style="color: #666666">0</span>,
+      <span style="color: #008000; font-weight: bold">class</span><span style="color: #666666">:</span> <span style="color: #BA2121">&#39;rect&#39;</span>,
+      id<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Table-0&#39;</span>,
+    },
+    <span style="color: #408080; font-style: italic">// more....</span>
+    {
+      name<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Word&#39;</span>,
+      color<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;#0288d1&#39;</span>,
+      count<span style="color: #666666">:</span> <span style="color: #666666">0</span>,
+      <span style="color: #008000; font-weight: bold">class</span><span style="color: #666666">:</span> <span style="color: #BA2121">&#39;rect&#39;</span>,
+      id<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;Word-0&#39;</span>,
+    }];
+self.state <span style="color: #666666">=</span> self.stateData[<span style="color: #666666">0</span>];
+
+<span style="color: #008000; font-weight: bold">function</span> callbackStateToggle(arg) {
+  <span style="color: #408080; font-style: italic">// What to do when the state toggle buttons are pushed:</span>
+  <span style="color: #408080; font-style: italic">// 1. Save the old state to self.stateData</span>
+  <span style="color: #408080; font-style: italic">// 2. Make self.state the clicked state.</span>
+}
+<span style="color: #408080; font-style: italic">//// Set the Options</span>
+<span style="color: #008000; font-weight: bold">var</span> stateToggleOpt <span style="color: #666666">=</span> {
+  type<span style="color: #666666">:</span> <span style="color: #BA2121">&#39;dropdown&#39;</span>, <span style="color: #408080; font-style: italic">// Alt. is a button bank</span>
+  addTo<span style="color: #666666">:</span> <span style="color: #408080; font-style: italic">// Where to add to the dropdown,</span>
+  clickCall<span style="color: #666666">:</span> callbackStateToggle,
+};
+<span style="color: #408080; font-style: italic">//// Create the new object</span>
+self.stateTogglers <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">new</span> ButtonToggle(self.stateData, stateToggleOpt);
+</pre></div>
+
+<p>By switching the canvas state, we switch the color of the rectangles that are drawn and, more substantially, we add classes to the rectangle groups that allow us to identify the annotation type when we go to compile the data.</p>
+
+<h3 id="the-submit-button:4e048ec189f37fde3524c915d7fe71a9">The &ldquo;Submit&rdquo; Button</h3>
+
+<p>The &ldquo;Submit&rdquo; button is simply an HTML <code>&lt;button&gt;</code> with Bootstrap styling. We then attach an event listener to it that calls the data compile and preview methods discussed above.</p>
+
+<p>The code is just:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">function</span> addDataSubmitButton(addTo) {
+  <span style="color: #408080; font-style: italic">// Make a button that will submit the necessary data to the system.</span>
+
+  <span style="color: #408080; font-style: italic">// Add the button</span>
+  d3.select(addTo)
+    .append(<span style="color: #BA2121">&#39;button&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;class&#39;</span>, <span style="color: #BA2121">&#39;btn btn-dark submit-button&#39;</span>)
+    .style(<span style="color: #BA2121">&#39;font&#39;</span>, <span style="color: #BA2121">&#39;caption&#39;</span>)
+    .text(<span style="color: #BA2121">&#39;Submit&#39;</span>)
+    .on(<span style="color: #BA2121">&#39;click&#39;</span>, onclickCallback);
+
+  <span style="color: #408080; font-style: italic">// Define the &#39;onclick&#39; callback</span>
+  <span style="color: #008000; font-weight: bold">function</span> onclickCallback() {
+    <span style="color: #008000; font-weight: bold">var</span> out <span style="color: #666666">=</span> self.dataCompile(); <span style="color: #408080; font-style: italic">// &lt;= Data Compile Code Discussed Above</span>
+    console.log(out);             <span style="color: #408080; font-style: italic">// &lt;= See raw data in console.</span>
+    self.previewSelections(out);  <span style="color: #408080; font-style: italic">// &lt;= Preview in browser</span>
+  }
+}
+</pre></div>
+
+<p>The <code>addTo</code> parameter is a CSS selector stating where we want to add the button.</p>
+
+<h2 id="conclusion:4e048ec189f37fde3524c915d7fe71a9">Conclusion</h2>
+
+<p>In this post I&rsquo;ve demonstrated that we have a viable image annotation tool. In particular, we demonstrated that we can extract bounding boxes from each image and get them into a data structure that can be used to train a model.</p>
+
+<p>The main gaps in the current code have to do with image handling. We need to add the ability to <em>choose</em> the input image and handle multiple images at once. This is where further modularization of the code will come in handy. The basic idea will be to create <code>&lt;g&gt;</code> elements for each image that will contain both the image and the annotation rectangles. We can then add controls for switching between each image. Ultimately, we&rsquo;ll want to be able to download this data.</p>
+</section>
+  <section>
+    
+
+    
+
+<footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+    <div class="custom-js">
+	
+	    <script type="text/javascript" src=https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-4/button-toggle/button-toggle.js></script>
+	
+	    <script type="text/javascript" src=/posts/drawing-4/drawing-4-main.js></script>
+	
+    </div>
+    
+
+
+</body>
+</html>

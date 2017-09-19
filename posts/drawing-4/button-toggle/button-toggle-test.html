@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Button Toggling</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
+  <!--  <link href="main.css" rel="stylesheet" type="text/css">-->
+</head>
+
+<body>
+  <div class="sample-div">
+  </div>
+
+  <div>
+    <p id="response-p">Button Clicked: Table</p>
+  </div>
+
+  <div class='button-togglers'>
+  </div>
+  <br>
+  <div class='button-togglers2'>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js"></script>
+  <script src="button-toggle.js"></script>
+
+  <script>
+    /**************
+    Testing Script
+    ***************/
+    function testButtonToggle() {
+
+      var b = [{
+          name: 'Table',
+          color: '#d32f2f',
+        },
+        {
+          name: 'Row',
+          color: '#303f9f',
+        },
+        {
+          name: 'Column',
+          color: '#afb42b',
+        }
+      ];
+
+      var cc = function(arg) {
+        document.getElementById('response-p').innerHTML =
+          "Button Clicked: " + arg;
+      }
+
+      var opt = {
+        type: 'button',
+        addTo: 'div.button-togglers',
+        clickCall: cc,
+      };
+
+      var bt = new ButtonToggle(b, opt);
+
+      var opt = {
+        type: 'dropdown',
+        addTo: 'div.button-togglers2',
+        clickCall: cc,
+      };
+
+      var bt2 = new ButtonToggle(b, opt);
+    }
+
+    testButtonToggle();
+
+  </script>
+
+</body>
+
+</html>

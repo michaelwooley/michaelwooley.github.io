@@ -12,5 +12,10 @@ div#at4-share {
 
 div#at4-share a{
   opacity: 0.95;
-}
+} 
 
+/* Code Coloring */
+code {
+  color: unset;
+  background-color: unset;
+}

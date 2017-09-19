@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>Image to use:</p>
+<svg>
+<image id="test-table" href="media/sample_table.png" width="100%"></image>
+</svg>
+<!--
+<img id="scream" 
+src="media/sample_table.png" alt="Sample_table">
+-->
+
+<p>Canvas:</p>
+
+<canvas id="canvas" width="500" height="500"
+style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+
+<script>
+window.onload = function() {
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+  var img = document.getElementById("test-table");
+  ctx.drawImage(img, 0, 0, 250, 250, 0, 0, 25, 25);
+  
+  console.log(img);
+};
+</script>
+
+</body>
+</html>
