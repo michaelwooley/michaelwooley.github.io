@@ -84,6 +84,61 @@ MathJax.Hub.Config({
     <section class='content-header'>
 <h1 class="content-title">
   
+  <a href="/posts/tight-bb-1/">(Really) Tight Bounding Boxes</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 22, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">d3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/javascript">JavaScript</a>
+      
+    
+  </span>
+
+
+</section>
+
+    <p>
+    
+      <span class="marginnote">
+          <img src=/posts/tight-bb-1/media/tight-bb-1-avatar.png height="200" width="200"></img>
+      </span>
+    
+    
+    <p>I&rsquo;ve created a simple method to determine <em>precise</em> bounding boxes for characters and  text elements within an SVG. Why would this be necessary? Can&rsquo;t we just get the bounding box for an element by calling <code>node.getBBox()</code>? It depends on how much precision you need. For text characters and strings this method will assign the same bounding box for every character. So, for example, the bounding boxes for &ldquo;a&rdquo;, &ldquo;g&rdquo;, and &ldquo;f&rdquo; will all be the same. For a lot of applications this will do. However, if you need to know exactly where a character is located it would be preferable to have a bit more precision.</p>
+
+    </p>
+    
+    <p><a href="/posts/tight-bb-1/">Read On &rarr;</a></p>
+    </div>
+    
+  
+
+  
+    <div class='post-description'>
+    <section class='content-header'>
+<h1 class="content-title">
+  
   <a href="/posts/drawing-4/">Drawing With D3.js Part 4: Data Extraction</a>
   
 </h1>

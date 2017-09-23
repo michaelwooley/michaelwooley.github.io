@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <title>Synthetic Data: Control Panel</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
+  <style>
+    div.control-panel {
+      position: fixed;
+      top: 10%;
+      left: 10%;
+      width: 85%;
+    }
+    
+    div.input-numbers {
+      padding-left: 0;
+      padding-top: 0.2rem;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="control-panel">
+
+    <div class="container form-control">
+      <div class="row">
+        <div class="col-9">
+          <h3>Synthetic Table Data</h3>
+        </div>
+      
+      <div class="col-2">
+        <button type="submit" class="btn">Create</button>
+      </div>
+      </div>
+
+      <form>
+        <div class="row">
+          <label for="sample" class="col-sm-4 col-form-label">Samples</label>
+          <div class="col-2 input-numbers">
+            <input type="text" class="form-control" placeholder="3" id="sample">
+          </div>
+        </div>
+        <div class="row">
+          <label for="exPerSample" class="col-sm-4 col-form-label">Max. Examples per Sample</label>
+          <div class="col-2 input-numbers">
+            <input type="text" class="form-control" placeholder="3" id="exPerSample">
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="select-type" class="col-sm-4 col-form-label">Example Types</label>
+          <div class="form-control col-sm-6" id="select-type">
+            <div class="form-check form-check-inline">
+              <label class="form-check-label">
+    <input class="form-check-input" type="checkbox" id="inlineCheckbox1" value="Digits" checked> Digits
+  </label>
+            </div>
+            <div class="form-check form-check-inline disabled">
+              <label class="form-check-label">
+    <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="Numbers" disabled> Numbers
+  </label>
+            </div>
+            <div class="form-check form-check-inline disabled">
+              <label class="form-check-label">
+    <input class="form-check-input" type="checkbox" id="inlineCheckbox3" value="Rows" disabled> Rows
+  </label>
+            </div>
+
+          </div>
+        </div>
+
+        <label class="col-form-label" for="advanced-opts">Advanced Options
+  </label>
+        <div class="form-control" id="advanced-opts">
+          <div class="row">
+            <label class="col-sm-4 col-form-label">Dimensions (px)</label>
+            <label for="canvas-height" class="col-sm-2 col-form-label">Height</label>
+            <div class="col-2 input-numbers">
+              <input type="text" class="form-control" placeholder="250" id="canvas-height">
+            </div>
+            <label for="canvas-width" class="col-sm-2 col-form-label">Width</label>
+            <div class="col-2 input-numbers">
+              <input type="text" class="form-control" placeholder="250" id="canvas-width">
+            </div>
+          </div>
+          <div class="row">
+            <label for="jiggle" class="col-sm-4 col-form-label">Bounding Box Jiggle</label>
+          </div>
+          <div class="row">
+            <div class="col-1"></div>
+            <div class="jiggle form-control col-10">
+              <div class="row">
+                <label for="X-jiggle" class="col-sm-4 col-form-label">Left/Right Sides</label>
+                <label for="X-jiggle-min" class="col-sm-2 col-form-label">Min</label>
+                <div class="col-2 input-numbers">
+                  <input type="text" class="form-control" placeholder="0.98" id="X-jiggle-min">
+                </div>
+                <label for="X-jiggle-max" class="col-sm-2 col-form-label">Max</label>
+                <div class="col-2 input-numbers">
+                  <input type="text" class="form-control" placeholder="1.03" id="X-jiggle-max">
+                </div>
+              </div>
+              <div class="row">
+                <label for="X-jiggle" class="col-sm-4 col-form-label">Top/Bottom Sides</label>
+                <label for="X-jiggle-min" class="col-sm-2 col-form-label">Min</label>
+                <div class="col-2 input-numbers">
+                  <input type="text" class="form-control" placeholder="0.98" id="X-jiggle-min">
+                </div>
+                <label for="X-jiggle-max" class="col-sm-2 col-form-label">Max</label>
+                <div class="col-2 input-numbers">
+                  <input type="text" class="form-control" placeholder="1.03" id="X-jiggle-max">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-1"></div>
+              <div class="form-check form-check-inline">
+                <label class="form-check-label">
+    <input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="verbose"> Verbose
+  </label>
+              </div>
+              <div class="form-check form-check-inline">
+                <label class="form-check-label">
+    <input class="form-check-input" type="checkbox" id="inlineCheckbox3" value="Rows"> Debug Mode
+  </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <br>
+        <div class="row">
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+
+
+</body>
+
+</html>

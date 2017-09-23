@@ -1,0 +1,400 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley - (Really) Tight Bounding Boxes</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/tight-bb-1/">(Really) Tight Bounding Boxes</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">
+         &nbsp;Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      &nbsp;Sep 22, 2017
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/d3.js">d3.js</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/javascript">JavaScript</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>I&rsquo;ve created a simple method to determine <em>precise</em> bounding boxes for characters and  text elements within an SVG. Why would this be necessary? Can&rsquo;t we just get the bounding box for an element by calling <code>node.getBBox()</code>? It depends on how much precision you need. For text characters and strings this method will assign the same bounding box for every character. So, for example, the bounding boxes for &ldquo;a&rdquo;, &ldquo;g&rdquo;, and &ldquo;f&rdquo; will all be the same. For a lot of applications this will do. However, if you need to know exactly where a character is located it would be preferable to have a bit more precision.</p>
+
+<p>Here is a sample application that demonstrates the tight bounding box:</p>
+
+<figure>
+<label for="main-sample" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="main-sample" class="margin-toggle"/>
+<span class="marginnote">The purple area is the bounding box from calling <code>node.getBBox()</code> while the blue area is the tight bounding box.</span>
+<div class="sample-div"></div>
+</figure>
+
+
+<p>The basic strategy will be to &ldquo;copy&rdquo; the SVG <code>&lt;text&gt;</code> element onto an HTML <code>&lt;canvas&gt;</code> element. We&rsquo;ll then back out the bounding box by analyzing the canvas RGBA array.</p>
+
+<p>I&rsquo;ve implemented this procedure as a prototype of <code>d3.selection</code>. This means that we can find the bounding box by calling, e.g., <code>d3.select('text').getTightBBox()</code>. This call attaches an object property <code>tBB</code> to the to the node of the element (e.g. <code>d3.select('text').node().tBB</code>). This ensures that the method only has to be called once.</p>
+
+<p>I&rsquo;m going to start out by giving a detailed qualitative overview of what needs to happen and point out some problem areas. Then I&rsquo;ll run through the actual code, which&ndash;due to the problem areas&ndash;isn&rsquo;t very pretty at the moment.</p>
+
+<h2 id="outline-and-preview-of-hiccups:1956d6c4eb3b8644416373fe86aead14">Outline and Preview of Hiccups</h2>
+
+<p>Suppose that we have a white image with the character &ldquo;1&rdquo; (in black) in the middle. We want to draw a tight bounding box around the character. If we have a &ldquo;usual&rdquo; image format (e.g. JPEG, png) we could extract the pixels from the image as a 4D array of RGBA values. We could then loop through each of these pixels and search for the locations where the color changes. Once we know the location of all of the border pixels we can set the minimal <code>x</code> (horizontal) coordinate of the box by finding the least column in which a border pixel occurs. We can do something similar to find the maximal <code>x</code>, minimal <code>y</code> (vertical), and maximal <code>y</code> coordinates of the box.</p>
+
+<p>What makes this strategy viable? First, the input image was super-simple: a black character on a white background. There was nothing else on the image that could have been confused for the character.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Obvious example: there wasn&rsquo;t a picture of a smiley face to the side. Maybe less-obvious: it wouldn&rsquo;t work if the image was scanned in and there was some weird &ldquo;scan marks&rdquo; on the image.</span> 
+ Second, we could get a pixel array that represented the image. While this might seem trivial, it will be fairly important in future developments.</p>
+
+<h3 id="pixelated-svgs:1956d6c4eb3b8644416373fe86aead14">&ldquo;Pixelated&rdquo; SVGs</h3>
+
+<p>In our application the bounding box will be made for text in an SVG image. The problem with SVGs is that they don&rsquo;t have pixel representations.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Now would be a good time to state that I&rsquo;m not an expert on SVGs. Apologies if some of my terminology and/or statements are off.</span> 
+ So are we dead in the water? Not exactly. One thing that we can try to do is &ldquo;draw&rdquo; the SVG element on an HTML canvas, which does have a pixel representation.</p>
+
+<p>How do we convert an SVG element to a canvas? The method that I&rsquo;m going to use here only works for SVG <code>&lt;text&gt;</code> elements. However, it works for a wider variety of cases than other methods that I&rsquo;ve attempted.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">One general method that looked promising involved serializing the SVG element to a string then drawing it on a canvas. I found that this method wasn&rsquo;t working well on non-standard fonts. It is also somewhat messy because it relies on callbacks. <a href="https://stackoverflow.com/questions/27230293/how-to-convert-svg-to-png-using-html5-canvas-javascript-jquery-and-save-on-serve/33227005#33227005">See this answer from Stack Overflow</a> for more info.</span> 
+ In short, we&rsquo;re going to manually &ldquo;re-make&rdquo; the SVG element on the canvas by drawing text on the canvas that has the same styling and position properties as the text on the SVG.</p>
+
+<h3 id="issues-with-canvas:1956d6c4eb3b8644416373fe86aead14">Issues With Canvas</h3>
+
+<p>Two issues arise when we try duplicate the text using <code>&lt;canvas&gt;</code>.</p>
+
+<p>The first is that&ndash;relative to the SVG&ndash;the canvas will look pretty grainy (because it is grainy). This will be problematic because, if we find the bounding box of a grainy image, the bounding box will be off by a tad when we try to apply the bounding box to the smooth SVG text. To get around this we&rsquo;ll scale up the drawing of the text element on the canvas. With this enlarged image we&rsquo;ll find a bounding box, which will be too large for the original image. However, we can simply scale the bounding box coordinates back down to the original image, which will mean that the coordinates will be floats rather than integers. The bounding box will then fit onto the SVG text much more tightly.</p>
+
+<p>The second problem has to do with fonts. Suppose that you want to use a wacky font from <a href="https://fonts.google.com/">Google Fonts</a>. You can draw text in a canvas using one of these fonts. However, these fonts need to be loaded and that can take some time. If your application involves finding tight bounding boxes at the time the page is loading then the bounding box code may execute before the font is loaded. This is problematic because the machine will revert to the default font if the requested font isn&rsquo;t found. Since the bounding box is fit on a font that is different from the visible SVG text, the bounding box will be off.<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Since the font of SVG elements are set via the <code>style</code> attribute or CSS, they will adjust their fonts once the specified font is loaded.</span> 
+ When this is an issue it will be necessary to ensure that the method is called only after the font is loaded.</p>
+
+<h2 id="the-code:1956d6c4eb3b8644416373fe86aead14">The Code</h2>
+
+<p>The main method is as follows:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>d3.selection.prototype.getTightBBox <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> () {
+
+  <span style="color: #008000; font-weight: bold">var</span> self <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">this</span>;
+
+  <span style="color: #408080; font-style: italic">// Check to ensure that it is a text element</span>
+  <span style="color: #008000; font-weight: bold">if</span> (self.node().tagName.toLowerCase() <span style="color: #666666">!=</span> <span style="color: #BA2121">&#39;text&#39;</span>) {
+    console.error(<span style="color: #BA2121">&#39;d3.selection.getTightBBox can only accommodate SVG &lt;text&gt; elements.&#39;</span>);
+    <span style="color: #008000; font-weight: bold">return</span>;
+  }
+
+  <span style="color: #408080; font-style: italic">// Scaling factor</span>
+  <span style="color: #008000; font-weight: bold">var</span> k <span style="color: #666666">=</span> <span style="color: #666666">10</span>, c <span style="color: #666666">=</span> <span style="color: #666666">4</span>;
+  <span style="color: #408080; font-style: italic">// Get parent SVG (how to throw good error?)</span>
+  <span style="color: #008000; font-weight: bold">var</span> svgText <span style="color: #666666">=</span> self._groups[<span style="color: #666666">0</span>][<span style="color: #666666">0</span>].ownerSVGElement;
+  <span style="color: #408080; font-style: italic">// Check in on fonts to ensure all is okay.</span>
+  <span style="color: #408080; font-style: italic">// Do this before setting the loose bounding box because may change</span>
+  <span style="color: #408080; font-style: italic">// the font.</span>
+  <span style="color: #008000; font-weight: bold">var</span> targetFont <span style="color: #666666">=</span> k <span style="color: #666666">*</span> <span style="color: #008000">parseFloat</span>(self.style(<span style="color: #BA2121">&#39;font-size&#39;</span>)) <span style="color: #666666">+</span> <span style="color: #BA2121">&#39;px &#39;</span> <span style="color: #666666">+</span> self.style(<span style="color: #BA2121">&#39;font-family&#39;</span>);
+  <span style="color: #008000; font-weight: bold">if</span> (<span style="color: #666666">!</span><span style="color: #008000">document</span>.fonts.check(targetFont)) {
+    targetFont <span style="color: #666666">=</span> k <span style="color: #666666">*</span> <span style="color: #008000">parseFloat</span>(self.style(<span style="color: #BA2121">&#39;font-size&#39;</span>)) <span style="color: #666666">+</span> <span style="color: #BA2121">&#39;px sans&#39;</span>;
+    self.style(<span style="color: #BA2121">&#39;font-family&#39;</span>, <span style="color: #BA2121">&#39;sans&#39;</span>);
+    console.warn(<span style="color: #BA2121">&#39;d3.selection.getTightBBox: Font family &#39;</span> <span style="color: #666666">+</span> targetFont <span style="color: #666666">+</span> <span style="color: #BA2121">&#39; not found. Setting to &quot;sans&quot; font and proceeding.&#39;</span>);
+  }
+  <span style="color: #408080; font-style: italic">// Loose Bounding Box</span>
+  lBB <span style="color: #666666">=</span> self.node().getBBox();
+  <span style="color: #408080; font-style: italic">// Make a canvas to search for element</span>
+  <span style="color: #008000; font-weight: bold">var</span> canvas <span style="color: #666666">=</span> d3.select(<span style="color: #BA2121">&#39;body&#39;</span>)
+    .append(<span style="color: #BA2121">&#39;canvas&#39;</span>)
+    .attr(<span style="color: #BA2121">&#39;height&#39;</span>, k <span style="color: #666666">*</span> svgText.clientHeight)
+    .attr(<span style="color: #BA2121">&#39;width&#39;</span>, k <span style="color: #666666">*</span> svgText.clientWidth)
+    .style(<span style="color: #BA2121">&#39;display&#39;</span>, <span style="color: #BA2121">&#39;none&#39;</span>)
+    .node();
+  <span style="color: #408080; font-style: italic">// Get and set the context based on others</span>
+  <span style="color: #008000; font-weight: bold">var</span> ctx <span style="color: #666666">=</span> canvas.getContext(<span style="color: #BA2121">&#39;2d&#39;</span>);
+  ctx.font <span style="color: #666666">=</span> targetFont;
+  ctx.fillText(self.text(), k <span style="color: #666666">*</span> <span style="color: #008000">parseFloat</span>(self.attr(<span style="color: #BA2121">&#39;x&#39;</span>)), k <span style="color: #666666">*</span> <span style="color: #008000">parseFloat</span>(self.attr(<span style="color: #BA2121">&#39;y&#39;</span>)));
+  
+  <span style="color: #408080; font-style: italic">// Break the image into pixels</span>
+  <span style="color: #008000; font-weight: bold">var</span> imgData <span style="color: #666666">=</span> ctx.getImageData(k <span style="color: #666666">*</span> lBB.x, k <span style="color: #666666">*</span> lBB.y, k <span style="color: #666666">*</span> lBB.width, k <span style="color: #666666">*</span> lBB.height);
+  <span style="color: #408080; font-style: italic">// Use the image data to get a tight bounding box</span>
+  <span style="color: #008000; font-weight: bold">var</span> bb <span style="color: #666666">=</span> tightBBox(imgData);
+  <span style="color: #408080; font-style: italic">// Undo scaling to get back to svg</span>
+  bb.x <span style="color: #666666">=</span> (bb.x <span style="color: #666666">/</span> k) <span style="color: #666666">+</span> lBB.x;
+  bb.y <span style="color: #666666">=</span> (bb.y <span style="color: #666666">/</span> k) <span style="color: #666666">+</span> lBB.y;
+  bb.width <span style="color: #666666">=</span> bb.width <span style="color: #666666">/</span> k;
+  bb.height <span style="color: #666666">=</span> bb.height <span style="color: #666666">/</span> k;
+
+  self.node().tBB <span style="color: #666666">=</span> bb;
+  canvas.remove();
+
+};
+</pre></div>
+
+<p>It begins by checking to ensure that the passed element is of the correct type (it can only deal with <code>&lt;text&gt;</code> elements). The &ldquo;scaling factor&rdquo; <code>k</code> is hardcoded into the function. <code>k = 10</code> means that the HTML canvas will be made to be ten times the size of the original SVG element. <label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Recall that it is necessary to scale up the canvas to avoid imprecise bounding boxes resulting from grainy images.</span> 
+ We then retrieve the SVG element that contains the text element.</p>
+
+<p>The next step is ugly but necessary. We want to set the font styling of the canvas to be the same as the passed element. However, there may be cases where the desired font is not loaded. We check this with the <code>if</code> conditional. Presently, the method deals with this task by setting the SVG text and canvas fonts to be standard font (&lsquo;sans&rsquo;). This is one way of avoiding incorrect bounding boxes.</p>
+
+<p>In the next few lines we create and draw on a hidden canvas. If we viewed the canvas we would see large, black character(s) (in the correct font) on a white background. The position of the characters is the same as on the original SVG.</p>
+
+<p>Once we&rsquo;ve drawn the canvas we can begin to extract information from it. The line <code>var imgData = ...</code> returns a 1-D array of RGBA values in the specified area of the canvas. Here, we limit ourselves to the area of the canvas that contains the &ldquo;loose&rdquo; bounding box. The main benefit of doing this is that we know that the text is in that area of the canvas so we can restrict our search for minimal and maximal coordinates to this area. The next line actually retrieves the tight bounding box by calling the function <code>tightBBox</code> (discussed below) with the image data as an argument.</p>
+
+<p>The process finishes by scaling and shifting the bounding box coordinates to fit the SVG.</p>
+
+<h3 id="finding-the-tight-bounding-box:1956d6c4eb3b8644416373fe86aead14">Finding the Tight Bounding Box</h3>
+
+<p>Once we have the array of RGBA values in hand we can find the bounding boxes by searching for changes in hue. This task is carried out by two functions:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">var</span> arrayIndex1d3d <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (ii, w, h, c) {
+  <span style="color: #408080; font-style: italic">// Given ImageData.data index, get tuple location of pixel</span>
+  <span style="color: #008000; font-weight: bold">var</span> out <span style="color: #666666">=</span> [<span style="color: #666666">-99</span>, <span style="color: #666666">-99</span>, <span style="color: #666666">-99</span>];
+
+  <span style="color: #408080; font-style: italic">// What column?</span>
+  out[<span style="color: #666666">1</span>] <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.floor(ii <span style="color: #666666">/</span> (c <span style="color: #666666">*</span> w));
+  <span style="color: #408080; font-style: italic">// What row?</span>
+  out[<span style="color: #666666">0</span>] <span style="color: #666666">=</span> <span style="color: #008000">Math</span>.floor((ii <span style="color: #666666">-</span> (out[<span style="color: #666666">1</span>] <span style="color: #666666">*</span> c <span style="color: #666666">*</span> w)) <span style="color: #666666">/</span> c);
+  <span style="color: #408080; font-style: italic">// What Channel?</span>
+  out[<span style="color: #666666">2</span>] <span style="color: #666666">=</span> ii <span style="color: #666666">%</span> c;
+
+  <span style="color: #008000; font-weight: bold">return</span> out;
+}
+
+<span style="color: #008000; font-weight: bold">var</span> tightBBox <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">function</span> (data) {
+  <span style="color: #408080; font-style: italic">// Get a tight bounding box for the image data.</span>
+  <span style="color: #008000; font-weight: bold">var</span> xyz;
+  <span style="color: #008000; font-weight: bold">var</span> xmin <span style="color: #666666">=</span> data.width <span style="color: #666666">+</span> <span style="color: #666666">1</span>, xmax <span style="color: #666666">=</span> <span style="color: #666666">-1</span>, ymin <span style="color: #666666">=</span> data.height <span style="color: #666666">+</span> <span style="color: #666666">1</span>, ymax <span style="color: #666666">=</span> <span style="color: #666666">-1</span>;
+
+  <span style="color: #008000; font-weight: bold">for</span> (<span style="color: #008000; font-weight: bold">var</span> ii <span style="color: #666666">=</span> <span style="color: #666666">3</span>; ii <span style="color: #666666">&lt;</span> data.data.length; ii <span style="color: #666666">+=</span> <span style="color: #666666">4</span>) {
+    <span style="color: #008000; font-weight: bold">if</span> (data.data[ii] <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) {
+      <span style="color: #408080; font-style: italic">// Get coordinate in terms of (x, y, z)</span>
+      xyz <span style="color: #666666">=</span> arrayIndex1d3d(ii, data.width, data.height, <span style="color: #666666">4</span>);
+      <span style="color: #408080; font-style: italic">// Update bounds</span>
+      <span style="color: #008000; font-weight: bold">if</span> (xyz[<span style="color: #666666">0</span>] <span style="color: #666666">&lt;</span> xmin) { xmin <span style="color: #666666">=</span> xyz[<span style="color: #666666">0</span>]; }
+      <span style="color: #008000; font-weight: bold">if</span> (xyz[<span style="color: #666666">0</span>] <span style="color: #666666">&gt;</span> xmax) { xmax <span style="color: #666666">=</span> xyz[<span style="color: #666666">0</span>]; }
+      <span style="color: #008000; font-weight: bold">if</span> (xyz[<span style="color: #666666">1</span>] <span style="color: #666666">&lt;</span> ymin) { ymin <span style="color: #666666">=</span> xyz[<span style="color: #666666">1</span>]; }
+      <span style="color: #008000; font-weight: bold">if</span> (xyz[<span style="color: #666666">1</span>] <span style="color: #666666">&gt;</span> ymax) { ymax <span style="color: #666666">=</span> xyz[<span style="color: #666666">1</span>]; }
+    }
+  }
+
+  <span style="color: #008000; font-weight: bold">return</span> {x<span style="color: #666666">:</span> xmin, y<span style="color: #666666">:</span> ymin, width<span style="color: #666666">:</span> xmax <span style="color: #666666">-</span> xmin, height<span style="color: #666666">:</span> ymax <span style="color: #666666">-</span> ymin,};
+}
+</pre></div>
+
+<p>The second function, <code>tightBBox</code>, is called from <code>getTightBBox</code>. In short, this function is going to loop through each &ldquo;pixel&rdquo; and determine if there is color in the pixel. If there is, then we know that we&rsquo;re in a pixel that is part of the character(s). The next step is to see if this pixel is at a boundary of the character. We do this by comparing the &ldquo;x&rdquo; and &ldquo;y&rdquo; coordinates of the pixel to the current minimal and maximal elements and update them if needed.</p>
+
+<h3 id="dealing-with-image-data:1956d6c4eb3b8644416373fe86aead14">Dealing With Image Data</h3>
+
+<p>The pixel data that we have in <code>data.data</code> is a 1D array. Each pixel is represented by four consecutive entries which specify the &ldquo;R&rdquo;, &ldquo;G&rdquo;, &ldquo;B&rdquo;, and &ldquo;A&rdquo; values, respectively. Here is a short example of the data structure for a monochrome image:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span>  R    G    B    A  <span style="color: #666666">|</span> R    G    B    A  <span style="color: #666666">|</span> R  , G  , B  , A  <span style="color: #666666">|</span> ...
+[ <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">255</span>, <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , <span style="color: #666666">0</span>  , ... ]
+</pre></div>
+
+<p>Notice that all pixels are technically &ldquo;black&rdquo; because the RGB entries are all 0. Only the &ldquo;A&rdquo; entry changes. An &ldquo;A&rdquo; value of &ldquo;0&rdquo; will show up as white; a value of &ldquo;255&rdquo; will show up as black. We save on computation time by only testing if these &ldquo;A&rdquo; characters are non-zero.</p>
+
+<p>Once we know that a pixel is non-zero we want to figure out the &ldquo;x&rdquo; and &ldquo;y&rdquo; coordinates of the pixel. This task is done by the function <code>arrayIndex1d3d</code>.</p>
+
+<h2 id="usage-fonts:1956d6c4eb3b8644416373fe86aead14">Usage: Fonts</h2>
+
+<p>How do we make sure that any non-standard fonts are loaded before making the tight bounding box? The one method that will definitely work involves using the WebFont.</p>
+
+<p>Here&rsquo;s one example, which is taken from the application at the top of the page:</p>
+<div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">var</span> fonts <span style="color: #666666">=</span> [<span style="color: #BA2121">&quot;Roboto&quot;</span>, <span style="color: #BA2121">&quot;Permanent Marker&quot;</span>, <span style="color: #BA2121">&quot;Condiment&quot;</span>, <span style="color: #BA2121">&quot;Reenie Beanie&quot;</span>, <span style="color: #BA2121">&quot;Monoton&quot;</span>];
+
+WebFontConfig <span style="color: #666666">=</span> {
+  google<span style="color: #666666">:</span> {
+    families<span style="color: #666666">:</span> fonts,
+  },
+  active<span style="color: #666666">:</span> start,
+};
+
+(<span style="color: #008000; font-weight: bold">function</span> (d) {
+  <span style="color: #008000; font-weight: bold">var</span> wf <span style="color: #666666">=</span> d.createElement(<span style="color: #BA2121">&#39;script&#39;</span>),
+    s <span style="color: #666666">=</span> d.scripts[<span style="color: #666666">0</span>];
+  wf.src <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js&#39;</span>;
+  wf.async <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">true</span>;
+  s.parentNode.insertBefore(wf, s);
+})(<span style="color: #008000">document</span>);
+
+<span style="color: #408080; font-style: italic">// All other code....</span>
+
+  <span style="color: #008000; font-weight: bold">function</span> start() {
+    <span style="color: #408080; font-style: italic">// Once the code is loaded enable button</span>
+    drawChar(<span style="color: #BA2121">&#39;1&#39;</span>, fc.node().value, fs.node().value, g, h, w);
+    submit.attr(<span style="color: #BA2121">&#39;disabled&#39;</span>, <span style="color: #008000; font-weight: bold">null</span>);
+  }
+}
+</pre></div>
+
+<p>At the top we specified what fonts ought to be loaded. As part of this process we specified a function (<code>start</code>) that will be called once all of the fonts are active. In this case I disabled the &ldquo;Make Example&rdquo; button until the fonts were loaded.</p>
+
+<h2 id="conclusion:1956d6c4eb3b8644416373fe86aead14">Conclusion</h2>
+
+<p>Okay, that&rsquo;s all I have. Why did I make this? Depending on how things develop, I may use this to make synthetic data for my table reading application. Time will tell&hellip;</p>
+</section>
+  <section>
+    
+
+    
+
+<footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2017
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+    <div class="custom-js">
+	
+	    <script type="text/javascript" src=https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.js></script>
+	
+	    <script type="text/javascript" src=https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js></script>
+	
+	    <script type="text/javascript" src=/posts/tight-bb-1/tightBoundingBox.js></script>
+	
+	    <script type="text/javascript" src=/posts/tight-bb-1/tight-bb-1-main.js></script>
+	
+    </div>
+    
+
+
+</body>
+</html>
