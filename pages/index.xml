@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Pages on Michael Wooley</title>
+    <title>Pages on Michael Wooley&#39;s Homepage</title>
     <link>https://michaelwooley.github.io/pages/</link>
-    <description>Recent content in Pages on Michael Wooley</description>
+    <description>Recent content in Pages on Michael Wooley&#39;s Homepage</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Mon, 04 Sep 2017 15:06:08 -0400</lastBuildDate>
@@ -21,7 +21,7 @@
 &lt;label for=&#34;yrs-trly&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;yrs-trly&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;span class=&#34;marginnote&#34;&gt;
-    &lt;img src=&#34;https://michaelwooley.github.io/images/wooley_pic.JPG&#34;&gt;
+    &lt;img src=&#34;https://michaelwooley.github.io/images/mw_mug.JPG&#34;&gt;
     
 &lt;/span&gt;
 &lt;/figure&gt;
@@ -35,9 +35,11 @@
 
 Below you will find some links to my papers and projects. Please feel free to reach out to learn more.&lt;/p&gt;
 
-&lt;p&gt;Here is my &lt;a href=&#34;https://michaelwooley.github.io/files/resume/wooley_resume.pdf&#34;&gt;cv&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;a href=&#34;https://michaelwooley.github.io/files/resume/wooley_cv.pdf&#34;&gt;Here is my cv.&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;projects:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;Projects&lt;/h2&gt;
+
+&lt;p&gt;(Mostly older at this point. Hopefully I can find the time to update this soon&amp;hellip;)&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Unnamed Table Reading Project&lt;/strong&gt; (Current) Check back soon for details.&lt;/li&gt;
@@ -64,35 +66,6 @@ Below you will find some links to my papers and projects. Please feel free to re
 &lt;li&gt;&lt;a href=&#34;http://d-scholarship.pitt.edu/id/eprint/20564&#34;&gt;&amp;ldquo;State-Local Centralization During the Great Depression: A Case Study of Ohio”&lt;/a&gt;, 2013. [First Prize, 2013 Ossip Awards for Excellence in Undergraduate Writing. University of Pittsburgh.]&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;http://d-scholarship.pitt.edu/id/eprint/20565&#34;&gt;&amp;ldquo;Pitt and the Worker Rights Consortium: An Argument for Affiliation”&lt;/a&gt;, 2013. [On behalf of Pitt #NoSweat Coalition Against Sweatshop Labor]&lt;/li&gt;
 &lt;/ol&gt;
-
-&lt;h2 id=&#34;resume-cv:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;Resume/CV&lt;/h2&gt;
-
-&lt;p&gt;One thing that I&amp;rsquo;ve found is that many people have widely divergent ideas of what constitutes a good resume or cv. In the hopes of making it easy to find the right information fast, I am posting three versions of my resume/cv:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;a href=&#34;https://michaelwooley.github.io/files/resume/wooley_resume.pdf&#34;&gt;Business (Longer)&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;files/wooley_resume_short_8_9_17.pdf&#34;&gt;Business/&amp;ldquo;Data Scientist&amp;rdquo; (Shorter)&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;files/wooley_cv.pdf&#34;&gt;Academic CV&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;hr /&gt;
-
-&lt;h3 id=&#34;about-this-site:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;About This Site&lt;/h3&gt;
-
-&lt;p&gt;This site was built with &lt;a href=&#34;https://gohugo.io/&#34;&gt;Hugo&lt;/a&gt;, a static website generator. It is hosted on &lt;a href=&#34;https://github.com/&#34;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;The basic theme is based on &lt;a href=&#34;https://edwardtufte.github.io/tufte-css/&#34;&gt;tufte-css&lt;/a&gt;, a stylesheet based on the &lt;a href=&#34;https://www.edwardtufte.com/tufte/&#34;&gt;Edward Tufte&amp;rsquo;s&lt;/a&gt; books and handouts. The css was converted into a full-blown Hugo theme by the creators of &lt;a href=&#34;https://github.com/shawnohare/hugo-tufte&#34;&gt;hugo-tufte&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;I have begun an overhaul of the hugo-tufte theme that includes:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Inline and marginal images and divs with captioning.&lt;/li&gt;
-&lt;li&gt;Sharing buttons (work in progress).&lt;/li&gt;
-&lt;li&gt;Easy addition of custom javascript and css for demos.&lt;/li&gt;
-&lt;li&gt;Various tweaks to the layouts and css.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Once I make some more progress I&amp;rsquo;ll look into merging these changes with hugo-tufte. In the meantime, I&amp;rsquo;d be happy to share over email.&lt;/p&gt;
 </description>
     </item>
     
