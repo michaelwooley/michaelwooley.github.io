@@ -59,6 +59,16 @@ def chol(A: FMATRIX) -> FMATRIX:
   return L
 
 
+@numba.njit(FMATRIX(FMATRIX), cache=True)
+def np_chol(A: FMATRIX) -> FMATRIX:
+  return np.linalg.cholesky(A)
+
+
+@numba.jit(FMATRIX(FMATRIX, FMATRIX), cache=True)
+def np_kron(A: FMATRIX, B: FMATRIX) -> FMATRIX:
+  return np.kron(A, B)
+
+
 @numba.njit(FVECTOR(FMATRIX, FMATRIX, FVECTOR), cache=True)
 def chol_kron_e_loop(A: FMATRIX, B: FMATRIX, e: FVECTOR) -> FVECTOR:
   """Solution to `cholesky[kron[A, B]] * e`.
@@ -71,8 +81,8 @@ def chol_kron_e_loop(A: FMATRIX, B: FMATRIX, e: FVECTOR) -> FVECTOR:
   """
   mA = A.shape[0]
   mB = B.shape[0]
-  L_a = chol(A)
-  L_b = chol(B)
+  L_a = np.linalg.cholesky(A)
+  L_b = np.linalg.cholesky(B)
 
   out = np.zeros((mA * mB))
 

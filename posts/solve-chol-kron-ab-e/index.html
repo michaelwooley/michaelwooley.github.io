@@ -165,7 +165,7 @@ From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.</p>
 <div class="highlight" style="background: #f8f8f8"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">chol_kron_ab_e</span>(A: FMATRIX, B: FMATRIX, e: FVECTOR) <span style="color: #666666">-&gt;</span> FVECTOR:
   <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;Solution to `cholesky[kron[A, B]] * e`.</span>
 <span style="color: #BA2121; font-style: italic">  Args:</span>
-<span style="color: #BA2121; font-style: italic">      A (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mA, , mA]</span>
+<span style="color: #BA2121; font-style: italic">      A (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mA, mA]</span>
 <span style="color: #BA2121; font-style: italic">      B (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mB, mB]</span>
 <span style="color: #BA2121; font-style: italic">      e (FVECTOR): Vector of shape [mA * mB, 1]</span>
 <span style="color: #BA2121; font-style: italic">  Returns:</span>

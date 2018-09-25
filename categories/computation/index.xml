@@ -52,7 +52,7 @@ From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p
 &lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;chol_kron_ab_e&lt;/span&gt;(A: FMATRIX, B: FMATRIX, e: FVECTOR) &lt;span style=&#34;color: #666666&#34;&gt;-&amp;gt;&lt;/span&gt; FVECTOR:
   &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;&amp;quot;&amp;quot;&amp;quot;Solution to `cholesky[kron[A, B]] * e`.&lt;/span&gt;
 &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;  Args:&lt;/span&gt;
-&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      A (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mA, , mA]&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      A (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mA, mA]&lt;/span&gt;
 &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      B (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mB, mB]&lt;/span&gt;
 &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      e (FVECTOR): Vector of shape [mA * mB, 1]&lt;/span&gt;
 &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;  Returns:&lt;/span&gt;
