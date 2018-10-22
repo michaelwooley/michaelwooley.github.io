@@ -6,47 +6,64 @@
     <description>Recent content in Numba on Michael Wooley&#39;s Homepage</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 20 Aug 2018 18:28:59 -0400</lastBuildDate>
+    <lastBuildDate>Mon, 22 Oct 2018 18:28:59 -0400</lastBuildDate>
     <atom:link href="https://michaelwooley.github.io/categories/numba/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>A Time- and Memory-Efficient Solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$</title>
       <link>https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/</link>
-      <pubDate>Mon, 20 Aug 2018 18:28:59 -0400</pubDate>
+      <pubDate>Mon, 22 Oct 2018 18:28:59 -0400</pubDate>
       
       <guid>https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/</guid>
       <description>
 
-&lt;p&gt;This post discusses an efficient solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$, where $A$ and $B$ are real, symmetric, positive definite matrices of while $\varepsilon$ is an appropriately-sized vector. Why woul anyone ever want to compute this thing? Basically, an expression like this is going to pop up if you want to sample from a multivariate normal distribution with covariance matrix $A\otimes B$.&lt;/p&gt;
+&lt;p&gt;This post discusses an efficient solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$, where $A$ and $B$ are real, symmetric, positive definite matrices of while $\varepsilon$ is an appropriately-sized vector. Why would anyone ever want to compute this thing? Basically, an expression like this is going to pop up if you want to sample from a multivariate normal distribution with covariance matrix $A\otimes B$.&lt;/p&gt;
 
 &lt;figure&gt;
 &lt;label for=&#34;size-of0&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;size-of0&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;span class=&#34;marginnote&#34;&gt;
     &lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_ab_size.svg&#34;&gt;
-    We&amp;rsquo;ll quickly run into memory errors if we blindly compute $A\otimes B$. The projected matrix size in gigabytes assumes a 64-bit float.
+    &lt;span style=&#39;font-weight:bold;&#39; id=&#39;ab-size&#39;&gt;Figure 1.&lt;/span&gt; We&amp;rsquo;ll quickly run into memory errors if we blindly compute $A\otimes B$. The projected matrix size in gigabytes assumes a 64-bit float.
 &lt;/span&gt;
 &lt;/figure&gt;
 
 
-&lt;p&gt;For me, this expression arose as a bottleneck in a project that I&amp;rsquo;m working on that involves a Bayesian VAR with a Normal-Inverse-Wishart prior. What&amp;rsquo;s wrong with using regular NumPy to compute &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;? This matrix gets very big very fast. You can see this in Figure &lt;strong&gt;&lt;em&gt;INFS&lt;/em&gt;&lt;/strong&gt;, which considers the BVAR case with a set number of lags and $n$ variables per period. In the normal-inverse-wishart case the posterior covariance matrix has size $n(n\cdot lags+1)\times n(n\cdot lags+1)$. The right figure says that we need about 10,000 &lt;em&gt;gigabytes&lt;/em&gt; to compute $A\otimes B$ when $n=200$ and $lags=13$. I want to be able to accommodate specifications of this magnitude. In order to do so, though, I&amp;rsquo;m going to need to find an alternative to &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;For me, this expression arose as a bottleneck in a project that I&amp;rsquo;m working on that involves a Bayesian VAR with a Normal-Inverse-Wishart prior. What&amp;rsquo;s wrong with using regular NumPy to compute &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;? This matrix gets very big very fast. You can see this in &lt;a href=&#34;#ab-size&#34;&gt;Figure 1&lt;/a&gt;, which considers the BVAR case with a set number of lags $p$ and $n$ variables per period. In the normal-inverse-wishart case the posterior covariance matrix has size $n(n\cdot p+1)\times n(n\cdot p+1)$. The right figure says that we need about 10,000 &lt;em&gt;gigabytes&lt;/em&gt; to compute $A\otimes B$ when $n=200$ and $lags=13$. I want to be able to accommodate specifications of this magnitude. In order to do so, though, I&amp;rsquo;m going to need to find an alternative to &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h2 id=&#34;a-solution:a1555d59ae587cdf813d543d9fa6acc1&#34;&gt;A Solution&lt;/h2&gt;
 
-&lt;p&gt;The key to solving this problem is to avoid explicitly computing $A \otimes B$. This can be done by observing that
-$$\text{cholesky}\left[ A\otimes B\right] = \text{cholesky}[A]\otimes \text{cholesky}[B].$$
-Let&amp;rsquo;s prove this. Recall that the Cholesky decomposition of a real, symmetric, positive definite matrix $X$ is a lower-triangular matrix $L$ such that:&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;p&gt;The key to solving this problem is to avoid explicitly computing $A \otimes B$. This can be done by observing that&lt;/p&gt;
+
+&lt;p&gt;$$\text{cholesky}\left[ A\otimes B\right] = \text{cholesky}[A]\otimes \text{cholesky}[B].$$&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s prove this. Recall that the Cholesky decomposition of a real, symmetric, positive definite matrix $X$ is a lower-triangular matrix $L$ such that:&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;span class=&#34;sidenote&#34;&gt;Cholesky decompositions can exist in other cases but we are only interested in this case. Note also that a Cholesky decomposition always exists when a matrix satisfies the properties on $X$&lt;/span&gt; 
 
 $$X = LL^{\prime}$$
-Now define $L_A$ and $L_B$ so that $A = L_A L_A^{\prime}$ and $B = L_B L_B^{\prime}$. Additionally define $L_C := L_A \otimes L_B$. Notice that $L_C$ is also lower-triangular and&amp;ndash;since $L_A$ and $L_B$ have real and postive diagonal entries&amp;ndash;so too does $L_C$. Consider the following:
-$$
-L_C L_C^{\prime} = (L_A \otimes L_B)(L_A \otimes L_B)^{\prime}=(L_A \otimes L_B)(L_A^{\prime} \otimes L_B^{\prime}) =(L_A L_A^{\prime} \otimes L_B L_B^{\prime})=A\otimes B
-$$
-From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p&gt;
+Now define $L_A$ and $L_B$ so that $A = L_A L_A^{\prime}$ and $B = L_B L_B^{\prime}$. Additionally define $L_C := L_A \otimes L_B$. Notice that $L_C$ is also lower-triangular and&amp;ndash;since $L_A$ and $L_B$ have real and postive diagonal entries&amp;ndash;so too does $L_C$. Consider the following:&lt;/p&gt;
 
-&lt;p&gt;What does this fact give us? In short, we can avoid explicitly computing the full kronecker product and instead multiply term-by-term.&lt;/p&gt;
+&lt;p&gt;\begin{align}
+L_C L_C^{\prime} &amp;amp; = (L_A \otimes L_B)(L_A \otimes L_B)^{\prime} \newline
+&amp;amp; =(L_A \otimes L_B)(L_A^{\prime} \otimes L_B^{\prime})  \newline
+&amp;amp; =(L_A L_A^{\prime} \otimes L_B L_B^{\prime}) \newline
+&amp;amp; =A\otimes B
+\end{align}&lt;/p&gt;
+
+&lt;p&gt;From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p&gt;
+
+&lt;p&gt;What does this fact give us? Two things:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;We avoid explicitly computing the full kronecker product.
+
+&lt;ul&gt;
+&lt;li&gt;Clearly, this saves on memory.&lt;/li&gt;
+&lt;li&gt;Moreover, since the matrices that we &lt;em&gt;are&lt;/em&gt; multiplying are lower-triangular, we can skip multiplicative terms where an input is known to be zero.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;Computing two (relatively small) choleskies is cheaper than computing the cholesky of $A\otimes B$.&lt;/li&gt;
+&lt;/ol&gt;
 
 &lt;p&gt;Here is some pseudo-code for the solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$:&lt;/p&gt;
 &lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;chol_kron_ab_e&lt;/span&gt;(A: FMATRIX, B: FMATRIX, e: FVECTOR) &lt;span style=&#34;color: #666666&#34;&gt;-&amp;gt;&lt;/span&gt; FVECTOR:
@@ -74,7 +91,7 @@ From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p
   &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;return&lt;/span&gt; out
 &lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;Obviously, this would be pretty slow to run in standard python. In the tested implementation we used &lt;a href=&#34;https://numba.pydata.org/&#34;&gt;Numba&lt;/a&gt;, which can do explicit loops efficiently.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;p&gt;Obviously, this would be pretty slow to run in standard python. In the tested implementation I used &lt;a href=&#34;https://numba.pydata.org/&#34;&gt;Numba&lt;/a&gt;, which can do explicit loops efficiently.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;span class=&#34;sidenote&#34;&gt;For the sake of comparison, all of the test functions below are compiled with Numba.&lt;/span&gt; 
 &lt;/p&gt;
@@ -83,51 +100,50 @@ From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p
 
 &lt;p&gt;Let&amp;rsquo;s see how well this thing works. Throughout, we&amp;rsquo;ll use a numba version of &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt; as a benchmark.&lt;/p&gt;
 
-&lt;p&gt;Figure &lt;em&gt;&lt;strong&gt;Whasfsa&lt;/strong&gt;&lt;/em&gt; provides some information on time-to-compute. I&amp;rsquo;ve kept the size of atrices relatively small so that the benchmark can be computed.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;#time-to-compute-inner&#34;&gt;Figure 2&lt;/a&gt; provides some information on time-to-compute. I&amp;rsquo;ve kept the size of the matrices relatively small so that the benchmark can be computed.&lt;/p&gt;
 
 &lt;figure&gt;
 &lt;label for=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_time_usage.svg&#34;&gt;
-&lt;span class=&#34;marginnote&#34;&gt;The proposed algorith (&amp;ldquo;Loop&amp;rdquo;) provides a considerable speed-up over the benchmark and is pretty fast in absolute terms.&lt;/span&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;time-to-compute-inner&#39;&gt;Figure 2.&lt;/span&gt; The proposed algorithm (&amp;ldquo;Loop&amp;rdquo;) provides a considerable speed-up over the benchmark and is pretty fast in absolute terms.&lt;/span&gt;
 &lt;/figure&gt;
 
 
-&lt;p&gt;From the left figure we see that the proposed algorithm quickly achieves a speed-up of greater than 100%. As the size of the matrices increase the speed-up increases at a concave/log-esque rate.&lt;/p&gt;
+&lt;p&gt;From the left figure we see that the proposed algorithm quickly achieves a speed-up at all matrix sizes. As the size of the matrices increase the speed-up increases at a more-or-less linear rate.&lt;/p&gt;
 
-&lt;p&gt;The left figure plots the absolute time-to-compute for the proposed algorithm in seconds. Not surprisingly, this relationship is convex at all lags. However, in absolute terms it is still pretty fast.&lt;/p&gt;
+&lt;p&gt;The right sub-figure plots the absolute time-to-compute for the proposed algorithm in seconds. Not surprisingly, this relationship is convex at all lags. However, in absolute terms it is still pretty fast.&lt;/p&gt;
 
-&lt;p&gt;Figure &lt;em&gt;&lt;strong&gt;SAFSAFAS&lt;/strong&gt;&lt;/em&gt; compares the memory requirements of the two algorithms. Due to the long time-to-compute memory usage, we only did this at a few values. The memory usage statistic presented here is the maximum memory usage required by the process, as computed by the Jupyter Notebook magic &lt;a href=&#34;https://github.com/pythonprofilers/memory_profiler&#34;&gt;&lt;code&gt;%memit&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;#chol-kron-memory-usage&#34;&gt;Figure 3&lt;/a&gt; compares the memory requirements of the two algorithms. Due to the long time-to-compute when calculating memory usage for the benchmark case, we only did this at a few values. The memory usage statistic presented here is the maximum memory usage required by the process, as computed by the command &lt;a href=&#34;https://github.com/pythonprofilers/memory_profiler&#34;&gt;&lt;code&gt;memory_profiler.memory_usage&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;&lt;figure&gt;
-&lt;label for=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
-&lt;input type=&#34;checkbox&#34; id=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;label for=&#34;memory-usage-label&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;memory-usage-label&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_memory_usage.svg&#34;&gt;
-&lt;span class=&#34;marginnote&#34;&gt;Relative and Absolute Memory Usage.&lt;/span&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;chol-kron-memory-usage&#39;&gt;Figure 3.&lt;/span&gt; Relative and Absolute Memory Usage.&lt;/span&gt;
 &lt;/figure&gt;
 &lt;/p&gt;
 
-&lt;p&gt;The proposed algorithm is pretty memory-efficient. With 42 variables the NumPy method already requires 8.3 gigs of memory. Most people don&amp;rsquo;t have that kind of memory to spare!&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
-&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
-&lt;span class=&#34;sidenote&#34;&gt;Based on the first figure, one might think that the NumPy method should require about a gig of memory. &lt;em&gt;&lt;strong&gt;WHY DOESN&amp;rsquo;T IT???&lt;/strong&gt;&lt;/em&gt;&lt;/span&gt; 
- On the other hand, memory consumption of the alternative method is pretty much flat.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
-&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
-&lt;span class=&#34;sidenote&#34;&gt;I believe that the seeming-drop in memory consumption in the last phase is coming from the fact that the memory profiler caught the function at an odd time. Alternatively, it could have to do with NumPy memory blocks? &lt;em&gt;&lt;strong&gt;WHY IS IT FLAT???&lt;/strong&gt;&lt;/em&gt;&lt;/span&gt; 
-&lt;/p&gt;
+&lt;p&gt;The proposed algorithm is pretty memory-efficient. With 42 variables the NumPy method already requires about 8.2 gigs of memory. Most people don&amp;rsquo;t have that kind of memory to spare! On the other hand, memory consumption of the alternative method grows at a modest (though convex) rate.&lt;/p&gt;
 
-&lt;p&gt;Finally, we test the proposed algorithm for large-dimensional cases.&lt;/p&gt;
+&lt;p&gt;Finally, I tested the proposed algorithm for large-dimensional cases.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;The benchmark is skipped here because I don&amp;rsquo;t have enough memory to do this sort of comparison.&lt;/span&gt; 
+ The results are displayed in &lt;a href=&#34;#big-mat&#34;&gt;Figure 4&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;&lt;figure&gt;
-&lt;label for=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
-&lt;input type=&#34;checkbox&#34; id=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;label for=&#34;big-mat-outer&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;big-mat-outer&#34; class=&#34;margin-toggle&#34;/&gt;
 &lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_big.svg&#34;&gt;
-&lt;span class=&#34;marginnote&#34;&gt;Time-to-compute and memory usage for proposed algorithm only.&lt;/span&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;big-mat&#39;&gt;Figure 4.&lt;/span&gt; Time-to-compute and memory usage for proposed algorithm (&amp;ldquo;loop&amp;rdquo;) only.&lt;/span&gt;
 &lt;/figure&gt;
 &lt;/p&gt;
+
+&lt;p&gt;First, the good: memory usage continues to climb &lt;em&gt;very&lt;/em&gt; slowly despite a huge increase in the size of matrices involved. Second, the okay: time-to-run is non-trivial at higher $n$. It also seems to pick up around $n=125$ for some reason. If you want to do sampling with this thing you better plan ahead.&lt;/p&gt;
 
 &lt;h2 id=&#34;conclusion:a1555d59ae587cdf813d543d9fa6acc1&#34;&gt;Conclusion&lt;/h2&gt;
 
-&lt;p&gt;&lt;strong&gt;TBD&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;m a little bit disappointed that I couldn&amp;rsquo;t keep the time down a bit more for the larger matrices. If I had a bit more time I&amp;rsquo;d investigate pure-c versions of this procedure to see how low it can go. If you have the time and want to try that, feel free to build on my results, which I&amp;rsquo;ve posted as a &lt;a href=&#34;https://gist.github.com/michaelwooley/93892fd8a2727211e037b5b922185769&#34;&gt;gist&lt;/a&gt;.&lt;/p&gt;
 </description>
     </item>
     

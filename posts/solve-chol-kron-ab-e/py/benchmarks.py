@@ -23,7 +23,9 @@ def kron_growth():
       sz = (n * (n * p + 1))**2.
       dfl.append({'n': n, 'Lags': p, 'Size': sz, 'Mb': sz * 8 * 1e-9})
   df_sz = pd.DataFrame(dfl)
-  fig, axes = plt.subplots(1, 2, sharex=True, sharey=False, figsize=(10, 5))
+  fig, axes = plt.subplots(
+    1, 2, sharex=True, sharey=False, figsize=(10, 5)
+  )
 
   df_sz.pivot(
     index='n', columns='Lags', values='Size'
@@ -52,13 +54,17 @@ def kron_growth():
 def time_comparison():
   dfl, n_bds, iters = [], [2, 25], 10
   for n in range(*n_bds):
-    print('{}'.format(n), end=', ')
+    print('{}'.format(n), end=', ', flush=True)
     for p in [3, 6, 13]:
 
       k = n * p + 1
 
-      A = stats.wishart.rvs(df=n + 2, scale=np.diag(np.random.randn(n)**2.))
-      B = stats.wishart.rvs(df=k + 2, scale=np.diag(np.random.randn(k)**2.))
+      A = stats.wishart.rvs(
+        df=n + 2, scale=np.diag(np.random.randn(n)**2.)
+      )
+      B = stats.wishart.rvs(
+        df=k + 2, scale=np.diag(np.random.randn(k)**2.)
+      )
       e = np.random.randn(k * n)
 
       time_np = timeit.timeit(
@@ -95,10 +101,14 @@ def time_comparison():
   df = pd.DataFrame(dfl)
   df['runtime_relative'] = df['runtime_numpy'] / df['runtime_loop']
   n_bds = [2, 25]
-  fig, axes = plt.subplots(1, 2, sharex=True, sharey=False, figsize=(10, 5))
+  fig, axes = plt.subplots(
+    1, 2, sharex=True, sharey=False, figsize=(10, 5)
+  )
 
   ax0 = axes[0]
-  df.pivot(index='n', columns='Lags', values='runtime_relative').plot(ax=ax0)
+  df.pivot(
+    index='n', columns='Lags', values='runtime_relative'
+  ).plot(ax=ax0)
   ax0.set_title('Relative Runtime: Loop/NumPy')
   ax0.set_ylabel('Loop / NumPy')
   ax0.set_xlabel('Number of variables (n)')
@@ -123,18 +133,26 @@ def time_comparison():
 def memory_comparison():
   dfl, n_bds = [], [2, 50, 4]
   for n in range(*n_bds):
-    print('{}'.format(n), end=', ')
+    print('{}'.format(n), end=', ', flush=True)
     for p in [13]:
       k = n * p + 1
 
-      A = stats.wishart.rvs(df=n + 2, scale=np.diag(np.random.randn(n)**2.))
-      B = stats.wishart.rvs(df=k + 2, scale=np.diag(np.random.randn(k)**2.))
+      A = stats.wishart.rvs(
+        df=n + 2, scale=np.diag(np.random.randn(n)**2.)
+      )
+      B = stats.wishart.rvs(
+        df=k + 2, scale=np.diag(np.random.randn(k)**2.)
+      )
       e = np.random.randn(k * n)
 
       # mem_np = %memit -o -q -r 1 cke.chol_kron_e_numpy(A, B, e)
       # mem_loop =  %memit -o -q -r 1 cke.chol_kron_e_loop(A, B, e)
-      mem_np = memory_usage((cke.chol_kron_e_numpy, (A, B, e)), interval=.1)
-      mem_loop = memory_usage((cke.chol_kron_e_loop, (A, B, e)), interval=.1)
+      mem_np = memory_usage(
+        (cke.chol_kron_e_numpy, (A, B, e)), interval=.1
+      )
+      mem_loop = memory_usage(
+        (cke.chol_kron_e_loop, (A, B, e)), interval=.1
+      )
 
       dfl.append(
         {
@@ -183,13 +201,17 @@ def memory_comparison():
 def large_matrices():
   dfl, n_bds, iters = [], [25, 203, 5], 10
   for n in range(*n_bds):
-    print('{}'.format(n), end=', ')
-    for p in [13]: #[3, 6, 13]:
+    print('{}'.format(n), end=', ', flush=True)
+    for p in [13]:  #[3, 6, 13]:
 
       k = n * p + 1
 
-      A = stats.wishart.rvs(df=n + 2, scale=np.diag(np.random.randn(n)**2.))
-      B = stats.wishart.rvs(df=k + 2, scale=np.diag(np.random.randn(k)**2.))
+      A = stats.wishart.rvs(
+        df=n + 2, scale=np.diag(np.random.randn(n)**2.)
+      )
+      B = stats.wishart.rvs(
+        df=k + 2, scale=np.diag(np.random.randn(k)**2.)
+      )
       e = np.random.randn(k * n)
 
       # time_loop =  %timeit -o -q -r 1 cke.chol_kron_e_loop(A, B, e)
@@ -218,13 +240,18 @@ def large_matrices():
         }
       )
 
-  df_big = pd.DataFrame(dfl)
-  fig_mem, axes = plt.subplots(
+  df = pd.DataFrame(dfl)
+  df.to_pickle('./df_big_linux.pkl')
+  fig, axes = plt.subplots(
     1, 2, sharex=True, sharey=False, figsize=(10, 5)
   )
+  rng = range(df['n'].min(), df['n'].max() + 1, 25)
 
   ax0 = axes[0]
-  df_big.pivot(
+  ax1 = axes[1]
+
+  ax0 = axes[0]
+  df.pivot(
     index='n', columns='Lags', values='runtime'
   ).plot(
     marker='o', ax=ax0
@@ -232,10 +259,10 @@ def large_matrices():
   ax0.set_title('Runtime')
   ax0.set_ylabel('Seconds')
   ax0.set_xlabel('Number of variables (n)')
-  ax0.set_xticks(range(*n_bds))
+  ax0.set_xticks(rng)
 
   ax1 = axes[1]
-  df_big.pivot(
+  df.pivot(
     index='n', columns='Lags', values='mem_loop'
   ).plot(
     marker='o', ax=ax1, legend=False
@@ -243,8 +270,11 @@ def large_matrices():
   ax1.set_title('Max. Memory Usage')
   ax1.set_ylabel('Megabytes')
   ax1.set_xlabel('Number of variables (n)')
-  ax1.set_xticks(range(*n_bds))
-  fig_mem.savefig(
+  ax1.set_xticks(rng)
+
+  # fig.show()
+
+  fig.savefig(
     '../media/chol_kron_big.svg', bbox_inches=0, transparent=True
   )
   return None
@@ -254,11 +284,13 @@ def time_chol():
 
   dfl, n_bds, iters = [], [25, 203, 1], 10
   for n in range(*n_bds):
-    for p in [13]: #[3, 6, 13]:
+    for p in [13]:  #[3, 6, 13]:
 
       k = n * p + 1
 
-      A = stats.wishart.rvs(df=n + 2, scale=np.diag(np.random.randn(n)**2.))
+      A = stats.wishart.rvs(
+        df=n + 2, scale=np.diag(np.random.randn(n)**2.)
+      )
 
       # time_loop =  %timeit -o -q -r 1 cke.chol_kron_e_loop(A, B, e)
       time_loop = timeit.timeit(
@@ -282,7 +314,8 @@ def time_chol():
       print(
         '{:03d} {:05.4e} {:05.4e} {:04.3f} {}'.format(
           n, time_loop, time_np, time_np / time_loop, time_loop < time_np
-        )
+        ),
+        flush=True
       )
 
 
@@ -290,57 +323,68 @@ def time_kron():
 
   dfl, n_bds, iters = [], [25, 35, 1], 10
   for n in range(*n_bds):
-    for p in [13]: #[3, 6, 13]:
+    for p in [13]:  #[3, 6, 13]:
 
       k = n * p + 1
 
-      A = stats.wishart.rvs(df=n + 2, scale=np.diag(np.random.randn(n)**2.))
-      B = stats.wishart.rvs(df=k + 2, scale=np.diag(np.random.randn(k)**2.))
+      A = stats.wishart.rvs(
+        df=n + 2, scale=np.diag(np.random.randn(n)**2.)
+      )
+      B = stats.wishart.rvs(
+        df=k + 2, scale=np.diag(np.random.randn(k)**2.)
+      )
 
       # time_loop =  %timeit -o -q -r 1 cke.chol_kron_e_loop(A, B, e)
       time_loop = timeit.timeit(
         'kron(A,B)',
-        globals={'kron': cke.kron,
-                 'A': A,
-                 'B': B},
+        globals={
+          'kron': cke.kron,
+          'A': A,
+          'B': B
+        },
         number=iters
       ) / iters
 
       time_np = timeit.timeit(
         'kron(A,B)',
-        globals={'kron': cke.np_kron,
-                 'A': A,
-                 'B': B},
+        globals={
+          'kron': cke.np_kron,
+          'A': A,
+          'B': B
+        },
         number=iters
       ) / iters
 
       print(
         '{:03d} {:05.4e} {:05.4e} {:04.3f} {}'.format(
           n, time_loop, time_np, time_np / time_loop, time_loop < time_np
-        )
+        ),
+        flush=True
       )
 
 
 if __name__ == "__main__":
   import time
-  print('BENCHMARKS')
+  print('BENCHMARKS', flush=True)
 
-  print('Size of Matrices from Kronecker Products:')
+  print('Size of Matrices from Kronecker Products:', flush=True)
   tic = time.time()
   kron_growth()
-  print('\t{:6.2f} s.'.format(time.time() - tic))
+  print('\t{:6.2f} s.'.format(time.time() - tic), flush=True)
 
-  print('Time Comparison: ')
+  print('Time Comparison: ', flush=True)
   tic = time.time()
   time_comparison()
-  print('{}'.format(time.time() - tic))
+  print('{}'.format(time.time() - tic), flush=True)
 
-  print('Memory Comparison: ')
+  print('Memory Comparison: ', flush=True)
   tic = time.time()
   memory_comparison()
-  print('\t{:6.2f} s.'.format(time.time() - tic))
+  print('\t{:6.2f} s.'.format(time.time() - tic), flush=True)
 
-  print('Large Matrix Benchmarks: ')
-  tic = time.time()
-  large_matrices()
-  print('\t{:6.2f} s.'.format(time.time() - tic))
+  # print('Large Matrix Benchmarks: ', flush=True)
+  # tic = time.time()
+  # large_matrices()
+  # print('\t{:6.2f} s.'.format(time.time() - tic), flush=True)
+
+# df = pd.read_pickle('df_big.pkl')
