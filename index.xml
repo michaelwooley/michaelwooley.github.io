@@ -2089,7 +2089,7 @@ We then record these coordinates in the &lt;code&gt;self.Rect.x0&lt;/code&gt; an
 &lt;/figure&gt;
 
 
-&lt;p&gt;Hello! My name is Michael Wooley. I am an economics graduate student currently searching for positions in industry. My current interests are in deep learning, numerical problems, and programming (broadly conceived). However, I am always up for learning about something new. As an economist I worked on problems in macroeconomics and public economics.&lt;/p&gt;
+&lt;p&gt;Hello! My name is Michael Wooley. I am (as of January 2018) the senior economist at Grant Thornton. My current interests are in programming (broadly conceived), numerical problems, and ui design. However, I am always up for learning about something new. In a previous life I was an academic economist working on problems in macro, labor, and public economics.&lt;/p&gt;
 
 &lt;p&gt;&lt;label for=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;/&gt;
@@ -2101,21 +2101,35 @@ Below you will find some links to my papers and projects. Please feel free to re
 
 &lt;h2 id=&#34;projects:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;Projects&lt;/h2&gt;
 
-&lt;p&gt;(Mostly older at this point. Hopefully I can find the time to update this soon&amp;hellip;)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;yapij&lt;/code&gt;.&lt;/strong&gt; A lightweight python interpreter for Electron apps.
 
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Unnamed Table Reading Project&lt;/strong&gt; (Current) Check back soon for details.&lt;/li&gt;
+&lt;li&gt;A single-process, multi-thread application that requires substantially less memory to run than Jupyter-Lab (20-40MB of ram compared to &amp;gt;100MB over several processes).&lt;/li&gt;
+&lt;li&gt;Built-in magics to organize workspaces, handling of common python types (e.g. pandas dataframes) for easy use in node environment, ping-pong heartbeats.&lt;/li&gt;
+&lt;li&gt;Besides node and python: Communication with ∅MQ, packing with MessagePack.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Understanding Busines Expectations.&lt;/strong&gt; (&lt;a href=&#34;https://michaelwooley.github.io/misc/ideation-site/&#34;&gt;demo site&lt;/a&gt;) Framework for eliciting subjective probability distributions in a survey context.
+
+&lt;ul&gt;
+&lt;li&gt;Provides new tool to ask questions regarding expectations/beliefs à la Manski [2005].&lt;/li&gt;
+&lt;li&gt;Converts user drawing of curve into proper (but exact) piecewise-linear distribution. Realtime computation of summary statistics means that users know what their edits imply for, e.g., percentiles, mean, variance, etc.&lt;/li&gt;
+&lt;li&gt;Set of questions to be explored in this context is large. The proposal section of the demo site discusses a few possible applications.&lt;/li&gt;
+&lt;li&gt;Main tools: react, D3.js, redux, react-router.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;GT Macro Modeling Framework.&lt;/strong&gt; Desktop app for modeling, forecasting, and viewing macroeconomic data.
+
+&lt;ul&gt;
+&lt;li&gt;Intuitive UI for use by non-programmers: model, variable, and data management; visualization of data, forecast diagnostics, forecasts.&lt;/li&gt;
+&lt;li&gt;Numerical work (BVAR+Dynamic Factor Models, hierarchical hyperparameter selection, conditional forecasts) in python then connected to electron app via yapij (see above).&lt;/li&gt;
+&lt;li&gt;Main tools: electron, react, python (NumPy, Numba, pandas).&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/michaelwooley/gertlerKiyotaki2015&#34;&gt;&lt;strong&gt;Shooting Backwards&lt;/strong&gt;&lt;/a&gt; Developed novel solution to non-linear, non-stationary banking crisis model by Kiyotaki and Gertler (2015)
 
 &lt;ul&gt;
-&lt;li&gt;Time to solution cut 15x&lt;/li&gt;
+&lt;li&gt;Time to solution cut 15x (relative to original paper)&lt;/li&gt;
 &lt;li&gt;Used MATLAB symbolic algebra to demonstrate backwards-in-time solution a quartic polynomial with analytic solution (impossible with pen and paper)&lt;/li&gt;
 &lt;li&gt;Used spline interpolation to infer solution to inner loop.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://youtu.be/IzIUzBddGPo&#34;&gt;&lt;strong&gt;name.com.bo&lt;/strong&gt;&lt;/a&gt; A search engine for finding and buying a cutesy website name using non-standard domains (e.g. “.com.bo” is the “.com” SLD for the Bolivian country code)
-
-&lt;ul&gt;
-&lt;li&gt;Implemented efficient search over 134k words in CMU pronunciation dictionary to find phonetic matches (e.g. “Michael Wooley” &amp;rarr; michaelwoo.ly)&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 

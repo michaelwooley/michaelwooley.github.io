@@ -88,7 +88,7 @@
 </figure>
 
 
-<p>Hello! My name is Michael Wooley. I am an economics graduate student currently searching for positions in industry. My current interests are in deep learning, numerical problems, and programming (broadly conceived). However, I am always up for learning about something new. As an economist I worked on problems in macroeconomics and public economics.</p>
+<p>Hello! My name is Michael Wooley. I am (as of January 2018) the senior economist at Grant Thornton. My current interests are in programming (broadly conceived), numerical problems, and ui design. However, I am always up for learning about something new. In a previous life I was an academic economist working on problems in macro, labor, and public economics.</p>
 
 <p><label for="error: cannot access named params by position" class="margin-toggle">&#8853;</label>
 <input type="checkbox" id="error: cannot access named params by position" class="margin-toggle"/>
@@ -100,21 +100,35 @@ Below you will find some links to my papers and projects. Please feel free to re
 
 <h2 id="projects:6083a88ee3411b0d17ce02d738f69d47">Projects</h2>
 
-<p>(Mostly older at this point. Hopefully I can find the time to update this soon&hellip;)</p>
+<ul>
+<li><strong><code>yapij</code>.</strong> A lightweight python interpreter for Electron apps.
 
 <ul>
-<li><strong>Unnamed Table Reading Project</strong> (Current) Check back soon for details.</li>
+<li>A single-process, multi-thread application that requires substantially less memory to run than Jupyter-Lab (20-40MB of ram compared to &gt;100MB over several processes).</li>
+<li>Built-in magics to organize workspaces, handling of common python types (e.g. pandas dataframes) for easy use in node environment, ping-pong heartbeats.</li>
+<li>Besides node and python: Communication with ∅MQ, packing with MessagePack.</li>
+</ul></li>
+<li><strong>Understanding Busines Expectations.</strong> (<a href="https://michaelwooley.github.io/misc/ideation-site/">demo site</a>) Framework for eliciting subjective probability distributions in a survey context.
+
+<ul>
+<li>Provides new tool to ask questions regarding expectations/beliefs à la Manski [2005].</li>
+<li>Converts user drawing of curve into proper (but exact) piecewise-linear distribution. Realtime computation of summary statistics means that users know what their edits imply for, e.g., percentiles, mean, variance, etc.</li>
+<li>Set of questions to be explored in this context is large. The proposal section of the demo site discusses a few possible applications.</li>
+<li>Main tools: react, D3.js, redux, react-router.</li>
+</ul></li>
+<li><strong>GT Macro Modeling Framework.</strong> Desktop app for modeling, forecasting, and viewing macroeconomic data.
+
+<ul>
+<li>Intuitive UI for use by non-programmers: model, variable, and data management; visualization of data, forecast diagnostics, forecasts.</li>
+<li>Numerical work (BVAR+Dynamic Factor Models, hierarchical hyperparameter selection, conditional forecasts) in python then connected to electron app via yapij (see above).</li>
+<li>Main tools: electron, react, python (NumPy, Numba, pandas).</li>
+</ul></li>
 <li><a href="https://github.com/michaelwooley/gertlerKiyotaki2015"><strong>Shooting Backwards</strong></a> Developed novel solution to non-linear, non-stationary banking crisis model by Kiyotaki and Gertler (2015)
 
 <ul>
-<li>Time to solution cut 15x</li>
+<li>Time to solution cut 15x (relative to original paper)</li>
 <li>Used MATLAB symbolic algebra to demonstrate backwards-in-time solution a quartic polynomial with analytic solution (impossible with pen and paper)</li>
 <li>Used spline interpolation to infer solution to inner loop.</li>
-</ul></li>
-<li><a href="https://youtu.be/IzIUzBddGPo"><strong>name.com.bo</strong></a> A search engine for finding and buying a cutesy website name using non-standard domains (e.g. “.com.bo” is the “.com” SLD for the Bolivian country code)
-
-<ul>
-<li>Implemented efficient search over 134k words in CMU pronunciation dictionary to find phonetic matches (e.g. “Michael Wooley” &rarr; michaelwoo.ly)</li>
 </ul></li>
 </ul>
 
