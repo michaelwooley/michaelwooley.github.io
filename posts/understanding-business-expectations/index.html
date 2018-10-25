@@ -1,0 +1,215 @@
+
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+<head>
+<title>Michael Wooley&#39;s Homepage - Understanding Expections: A New Tool</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="Michael Wooley&#39;s Homepage">
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  
+
+
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css" integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css" integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" crossorigin="anonymous" />
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte.css">
+<link rel="stylesheet" href="https://michaelwooley.github.io/css/hugo-tufte-override.css">
+
+  
+    
+
+
+</head>
+
+
+<body>
+  <div id="layout" class="pure-g">
+  <article class="pure-u-1">
+  <header class="brand">
+  <h1 class="content-title"><a href="https://michaelwooley.github.io/">Michael Wooley&#39;s Homepage</a></h1>
+  <h2></h2>
+  <nav class="menu">
+    <ul>
+    
+        <li><a href="/"><i class='fa fa-pencil fa-lg'></i> Writing</a></li>
+    
+        <li><a href="/pages/about"><i class='fa fa-user fa-lg'></i> About</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+  <section class='content-header'>
+<h1 class="content-title">
+  
+  <a href="/posts/understanding-business-expectations/">Understanding Expections: A New Tool</a>
+  
+</h1>
+
+
+
+  <span class="content-meta">
+    
+       <i class="fa fa-user">&nbsp;</i><span class="author">Michael Wooley</span> <br>
+    
+
+
+    
+      <i class="fa fa-calendar"></i>
+      Oct 24, 2018
+    
+
+    
+
+    
+      <br>
+      <i class="fa fa-tags"> </i>
+      
+        <a  href="https://michaelwooley.github.io/categories/react">react</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/expections">expections</a>
+      
+        <a  href="https://michaelwooley.github.io/categories/statistics">statistics</a>
+      
+    
+  </span>
+
+
+</section>
+
+  
+
+  <section class="content">
+
+<p>I&rsquo;ve had a microsite lurking around here for some time and I thought I&rsquo;d acknowledge it as a legitimate child. The site is a proof-of-concept for questions that elicit the subjective beliefs of respondents. For example, let&rsquo;s say I wanted to ask someone how much an average Uber driver makes per average hour. I could just ask you to give me an estimate like, &ldquo;<span>$</span>15.”<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">I&rsquo;ve come across hugely-varying estimates. A paper by authors that included Uber employees put mean earnings at $21.07 (<a href="https://web.stanford.edu/~diamondr/UberPayGap.pdf" target="_blank">Cook et al., 2018, Table 1</a>). An <a href="https://www.ridester.com/2018-survey/" target="_blank">independent survey by Ridester</a> put the figure at $13.70 (pre-tip). I haven&rsquo;t tried to ferret out the source of the disparity. It may have to do with differing normalizations of the cost of living across cities. It could also just be a survey issue.</span> 
+ But think about what happens in your head when someone asks you that question. You probably weighed a lot of factors then answered with something like the mean of your beliefs. If I just ask you for a point estimate (i.e. one number) then I&rsquo;m potentially leaving a lot of information concerning <em>the extent of your uncertainty</em> on the table. Are you almost certain it is <span>$</span>15 or do you think it could pretty much be anywhere between <span>$</span>10 and <span>$</span>20? Do you maybe think it is <em>either</em> <span>$</span>15 or <span>$</span>17? Each of these cases generates a whole new interpretation of question response. The site demonstrates a method of capturing all of this uncertainty.</p>
+
+<p>I encourage you to quit reading right now and check out the question so that you&rsquo;ll have a better idea of what I&rsquo;m talking about below:</p>
+
+<p><a href="https://understanding-expectations.gitlab.io/" target="_blank" style="font-size:1.5em;font-style:italic;font-weight:bold;color:#7F7F56;text-decoration:none;">Go to the demo site.</a></p>
+
+<p>The tool allows users to draw their beliefs. From the user&rsquo;s point of view, they are just drawing a line. If the user thinks that values in a certain region are relatively likely, then they give the line a higher value in that area. In regions that have probability zero (i.e. are &ldquo;impossible&rdquo;) the user draws the line so that it is at the bottom/zero. Each time the user updates the line they are provided with new summary statistics (e.g. mean, median, standard deviation).<label for="error: cannot access positional params by string name" class="margin-toggle sidenote-number"></label>
+<input type="checkbox" id="error: cannot access positional params by string name" class="margin-toggle"/>
+<span class="sidenote">Under the hood we&rsquo;re using mouse drag events to construct a piecewise-linear probability distribution, which has analytically-tractable moments.</span> 
+ My hope is that users with any statistical background will be able to use this tool. They don&rsquo;t need to know what&rsquo;s going on under the hood. They just need to understand the basic idea that &ldquo;high lines &rarr; likely; low lines &rarr; unlikely.&rdquo;</p>
+
+<h3 id="business-use-cases:48fd7da105f8431a2f4c331e823d0329">Business Use Cases</h3>
+
+<p>There&rsquo;s a lot that you can do with this information in a business context.</p>
+
+<p>One approach is to hook responses up to an automatic decision rule. This is what the (somewhat stupid) toy example does in the demo app. In short, it compares expected profits under two different prices and tells you the conditions under which it is optimal to make a price change.</p>
+
+<p>A second use case involves communication of beliefs across a team. Suppose that we&rsquo;re planning a major project. Everyone on the team has a set of tasks and we ask them how long we expect each task to take. Once the results are collected the team pow-wows and looks at the results. Are there any surprises? If so, we can use the data to narrow in on where the team members have different beliefs and, more importantly, the different pieces of information that underly those beliefs.</p>
+
+<h3 id="concerns-raised-by-others:48fd7da105f8431a2f4c331e823d0329">Concerns Raised by Others</h3>
+
+<p>Let me address to points/concerns that have popped up among testers of the demo site:</p>
+
+<p>The first issue is that the tester didn&rsquo;t understand the analysis that was spat back to them after they completed the question. This may have a bit to do with my failing to adequetely explain the analysis in the text. However, in general, <em>question respondents need not understand the analysis that their responses are used to create.</em> In many important use cases the respondent will never see the subsquent analysis, which will be carried out by an outside analyst.</p>
+
+<p>The second issue goes like this: &ldquo;I could see how this might be useful for company X because they have a pretty good idea of what they&rsquo;re going to sell this year. For my company it is just too hard to tell.&rdquo; I would suggest that companies in both situations could use something like this but that a company with highly uncertain sales/profits/input costs/whatever would especially benefit from it. A public company with uncertain profits can&rsquo;t opt out of earnings forecasts because it is &ldquo;just too hard.&rdquo; They have to report something. This tool can aid in that process by making the extent and form of uncertainty more concrete and amenable to formal analysis.</p>
+
+<h3 id="conclusion:48fd7da105f8431a2f4c331e823d0329">Conclusion</h3>
+
+<p>I won&rsquo;t say much more about the project here. I&rsquo;ve written much more about <a href="https://understanding-expectations.gitlab.io/proposal">use cases</a> and <a href="https://understanding-expectations.gitlab.io/about">implementation</a> on the site itself. This is very much a work in progress. Any comments or questions are appreciated.</p>
+</section>
+  <section>
+    
+
+    
+
+<footer class="page-footer">
+  <hr>
+  
+  
+	
+  <div class="contact">
+      <ul class="page-footer-menu">
+	  <li>	    
+	    <p>
+	      
+		&copy; 2018
+	      Michael Wooley.
+	      All rights reserved.
+	      
+	  </p>
+	
+	</li>
+	<li>&nbsp;&nbsp;</li>
+	
+	  <li><p>Contact: </p></li>
+	  
+	    <li><a href="mailto:wm.wooley@gmail.com" target="_blank"><i class='fa fa-envelope'></i> </a></li>
+	  
+	    <li><a href="https://github.com/michaelwooley" target="_blank"><i class='fa fa-github'></i> </a></li>
+	  
+	    <li><a href="https://www.linkedin.com/in/michael-wooley/" target="_blank"><i class='fa fa-linkedin'></i> </a></li>
+	  
+	
+      </ul>
+  </div>
+	
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-105579679-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+  </section>
+  </article>
+  </div>
+  
+    
+
+
+</body>
+</html>
