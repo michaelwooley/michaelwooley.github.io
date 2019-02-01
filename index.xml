@@ -6,8 +6,190 @@
     <description>Recent content on Michael Wooley&#39;s Homepage</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 22 Sep 2017 20:49:59 -0400</lastBuildDate>
+    <lastBuildDate>Wed, 24 Oct 2018 20:49:59 -0400</lastBuildDate>
     <atom:link href="https://michaelwooley.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Understanding Expections: A New Tool</title>
+      <link>https://michaelwooley.github.io/posts/understanding-business-expectations/</link>
+      <pubDate>Wed, 24 Oct 2018 20:49:59 -0400</pubDate>
+      
+      <guid>https://michaelwooley.github.io/posts/understanding-business-expectations/</guid>
+      <description>
+
+&lt;p&gt;I&amp;rsquo;ve had a microsite lurking around here for some time and I thought I&amp;rsquo;d acknowledge it as a legitimate child. The site is a proof-of-concept for questions that elicit the subjective beliefs of respondents. For example, let&amp;rsquo;s say I wanted to ask someone how much an average Uber driver makes per average hour. I could just ask you to give me an estimate like, &amp;ldquo;&lt;span&gt;$&lt;/span&gt;15.”&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;I&amp;rsquo;ve come across hugely-varying estimates. A paper by authors that included Uber employees put mean earnings at $21.07 (&lt;a href=&#34;https://web.stanford.edu/~diamondr/UberPayGap.pdf&#34; target=&#34;_blank&#34;&gt;Cook et al., 2018, Table 1&lt;/a&gt;). An &lt;a href=&#34;https://www.ridester.com/2018-survey/&#34; target=&#34;_blank&#34;&gt;independent survey by Ridester&lt;/a&gt; put the figure at $13.70 (pre-tip). I haven&amp;rsquo;t tried to ferret out the source of the disparity. It may have to do with differing normalizations of the cost of living across cities. It could also just be a survey issue.&lt;/span&gt; 
+ But think about what happens in your head when someone asks you that question. You probably weighed a lot of factors then answered with something like the mean of your beliefs. If I just ask you for a point estimate (i.e. one number) then I&amp;rsquo;m potentially leaving a lot of information concerning &lt;em&gt;the extent of your uncertainty&lt;/em&gt; on the table. Are you almost certain it is &lt;span&gt;$&lt;/span&gt;15 or do you think it could pretty much be anywhere between &lt;span&gt;$&lt;/span&gt;10 and &lt;span&gt;$&lt;/span&gt;20? Do you maybe think it is &lt;em&gt;either&lt;/em&gt; &lt;span&gt;$&lt;/span&gt;15 or &lt;span&gt;$&lt;/span&gt;17? Each of these cases generates a whole new interpretation of question response. The site demonstrates a method of capturing all of this uncertainty.&lt;/p&gt;
+
+&lt;p&gt;I encourage you to quit reading right now and check out the question so that you&amp;rsquo;ll have a better idea of what I&amp;rsquo;m talking about below:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://understanding-expectations.gitlab.io/&#34; target=&#34;_blank&#34; style=&#34;font-size:1.5em;font-style:italic;font-weight:bold;color:#7F7F56;text-decoration:none;&#34;&gt;Go to the demo site.&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;The tool allows users to draw their beliefs. From the user&amp;rsquo;s point of view, they are just drawing a line. If the user thinks that values in a certain region are relatively likely, then they give the line a higher value in that area. In regions that have probability zero (i.e. are &amp;ldquo;impossible&amp;rdquo;) the user draws the line so that it is at the bottom/zero. Each time the user updates the line they are provided with new summary statistics (e.g. mean, median, standard deviation).&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;Under the hood we&amp;rsquo;re using mouse drag events to construct a piecewise-linear probability distribution, which has analytically-tractable moments.&lt;/span&gt; 
+ My hope is that users with any statistical background will be able to use this tool. They don&amp;rsquo;t need to know what&amp;rsquo;s going on under the hood. They just need to understand the basic idea that &amp;ldquo;high lines &amp;rarr; likely; low lines &amp;rarr; unlikely.&amp;rdquo;&lt;/p&gt;
+
+&lt;h3 id=&#34;business-use-cases:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Business Use Cases&lt;/h3&gt;
+
+&lt;p&gt;There&amp;rsquo;s a lot that you can do with this information in a business context.&lt;/p&gt;
+
+&lt;p&gt;One approach is to hook responses up to an automatic decision rule. This is what the (somewhat stupid) toy example does in the demo app. In short, it compares expected profits under two different prices and tells you the conditions under which it is optimal to make a price change.&lt;/p&gt;
+
+&lt;p&gt;A second use case involves communication of beliefs across a team. Suppose that we&amp;rsquo;re planning a major project. Everyone on the team has a set of tasks and we ask them how long we expect each task to take. Once the results are collected the team pow-wows and looks at the results. Are there any surprises? If so, we can use the data to narrow in on where the team members have different beliefs and, more importantly, the different pieces of information that underly those beliefs.&lt;/p&gt;
+
+&lt;h3 id=&#34;concerns-raised-by-others:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Concerns Raised by Others&lt;/h3&gt;
+
+&lt;p&gt;Let me address to points/concerns that have popped up among testers of the demo site:&lt;/p&gt;
+
+&lt;p&gt;The first issue is that the tester didn&amp;rsquo;t understand the analysis that was spat back to them after they completed the question. This may have a bit to do with my failing to adequetely explain the analysis in the text. However, in general, &lt;em&gt;question respondents need not understand the analysis that their responses are used to create.&lt;/em&gt; In many important use cases the respondent will never see the subsquent analysis, which will be carried out by an outside analyst.&lt;/p&gt;
+
+&lt;p&gt;The second issue goes like this: &amp;ldquo;I could see how this might be useful for company X because they have a pretty good idea of what they&amp;rsquo;re going to sell this year. For my company it is just too hard to tell.&amp;rdquo; I would suggest that companies in both situations could use something like this but that a company with highly uncertain sales/profits/input costs/whatever would especially benefit from it. A public company with uncertain profits can&amp;rsquo;t opt out of earnings forecasts because it is &amp;ldquo;just too hard.&amp;rdquo; They have to report something. This tool can aid in that process by making the extent and form of uncertainty more concrete and amenable to formal analysis.&lt;/p&gt;
+
+&lt;h3 id=&#34;conclusion:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;I won&amp;rsquo;t say much more about the project here. I&amp;rsquo;ve written much more about &lt;a href=&#34;https://understanding-expectations.gitlab.io/proposal&#34;&gt;use cases&lt;/a&gt; and &lt;a href=&#34;https://understanding-expectations.gitlab.io/about&#34;&gt;implementation&lt;/a&gt; on the site itself. This is very much a work in progress. Any comments or questions are appreciated.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>A Time- and Memory-Efficient Solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$</title>
+      <link>https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/</link>
+      <pubDate>Mon, 22 Oct 2018 18:28:59 -0400</pubDate>
+      
+      <guid>https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/</guid>
+      <description>
+
+&lt;p&gt;This post discusses an efficient solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$, where $A$ and $B$ are real, symmetric, positive definite matrices of while $\varepsilon$ is an appropriately-sized vector. Why would anyone ever want to compute this thing? Basically, an expression like this is going to pop up if you want to sample from a multivariate normal distribution with covariance matrix $A\otimes B$.&lt;/p&gt;
+
+&lt;figure&gt;
+&lt;label for=&#34;size-of0&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;size-of0&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;marginnote&#34;&gt;
+    &lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_ab_size.svg&#34;&gt;
+    &lt;span style=&#39;font-weight:bold;&#39; id=&#39;ab-size&#39;&gt;Figure 1.&lt;/span&gt; We&amp;rsquo;ll quickly run into memory errors if we blindly compute $A\otimes B$. The projected matrix size in gigabytes assumes a 64-bit float.
+&lt;/span&gt;
+&lt;/figure&gt;
+
+
+&lt;p&gt;For me, this expression arose as a bottleneck in a project that I&amp;rsquo;m working on that involves a Bayesian VAR with a Normal-Inverse-Wishart prior. What&amp;rsquo;s wrong with using regular NumPy to compute &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;? This matrix gets very big very fast. You can see this in &lt;a href=&#34;#ab-size&#34;&gt;Figure 1&lt;/a&gt;, which considers the BVAR case with a set number of lags $p$ and $n$ variables per period. In the normal-inverse-wishart case the posterior covariance matrix has size $n(n\cdot p+1)\times n(n\cdot p+1)$. The right figure says that we need about 10,000 &lt;em&gt;gigabytes&lt;/em&gt; to compute $A\otimes B$ when $n=200$ and $lags=13$. I want to be able to accommodate specifications of this magnitude. In order to do so, though, I&amp;rsquo;m going to need to find an alternative to &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&#34;a-solution:a1555d59ae587cdf813d543d9fa6acc1&#34;&gt;A Solution&lt;/h2&gt;
+
+&lt;p&gt;The key to solving this problem is to avoid explicitly computing $A \otimes B$. This can be done by observing that&lt;/p&gt;
+
+&lt;p&gt;$$\text{cholesky}\left[ A\otimes B\right] = \text{cholesky}[A]\otimes \text{cholesky}[B].$$&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s prove this. Recall that the Cholesky decomposition of a real, symmetric, positive definite matrix $X$ is a lower-triangular matrix $L$ such that:&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;Cholesky decompositions can exist in other cases but we are only interested in this case. Note also that a Cholesky decomposition always exists when a matrix satisfies the properties on $X$&lt;/span&gt; 
+
+$$X = LL^{\prime}$$
+Now define $L_A$ and $L_B$ so that $A = L_A L_A^{\prime}$ and $B = L_B L_B^{\prime}$. Additionally define $L_C := L_A \otimes L_B$. Notice that $L_C$ is also lower-triangular and&amp;ndash;since $L_A$ and $L_B$ have real and postive diagonal entries&amp;ndash;so too does $L_C$. Consider the following:&lt;/p&gt;
+
+&lt;p&gt;\begin{align}
+L_C L_C^{\prime} &amp;amp; = (L_A \otimes L_B)(L_A \otimes L_B)^{\prime} \newline
+&amp;amp; =(L_A \otimes L_B)(L_A^{\prime} \otimes L_B^{\prime})  \newline
+&amp;amp; =(L_A L_A^{\prime} \otimes L_B L_B^{\prime}) \newline
+&amp;amp; =A\otimes B
+\end{align}&lt;/p&gt;
+
+&lt;p&gt;From this we see that $L_C$ is the Cholesky decomposition of $A\otimes B$.&lt;/p&gt;
+
+&lt;p&gt;What does this fact give us? Two things:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;We avoid explicitly computing the full kronecker product.
+
+&lt;ul&gt;
+&lt;li&gt;Clearly, this saves on memory.&lt;/li&gt;
+&lt;li&gt;Moreover, since the matrices that we &lt;em&gt;are&lt;/em&gt; multiplying are lower-triangular, we can skip multiplicative terms where an input is known to be zero.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;Computing two (relatively small) choleskies is cheaper than computing the cholesky of $A\otimes B$.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Here is some pseudo-code for the solution to $\text{cholesky}\left[A\otimes B\right]\varepsilon$:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #f8f8f8&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color: #0000FF&#34;&gt;chol_kron_ab_e&lt;/span&gt;(A: FMATRIX, B: FMATRIX, e: FVECTOR) &lt;span style=&#34;color: #666666&#34;&gt;-&amp;gt;&lt;/span&gt; FVECTOR:
+  &lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;&amp;quot;&amp;quot;&amp;quot;Solution to `cholesky[kron[A, B]] * e`.&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;  Args:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      A (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mA, mA]&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      B (FMATRIX): Real, Symmetric, Positive Definite Matrix of size [mB, mB]&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      e (FVECTOR): Vector of shape [mA * mB, 1]&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;  Returns:&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;      FVECTOR: Vector of shape [mA * mB, 1] solution to `cholesky[kron[A, B]] * e`&lt;/span&gt;
+&lt;span style=&#34;color: #BA2121; font-style: italic&#34;&gt;  &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+  mA &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; A&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;shape[&lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;]
+  mB &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; B&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;shape[&lt;span style=&#34;color: #666666&#34;&gt;0&lt;/span&gt;]
+  L_a &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; cholesky(A)
+  L_b &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; cholesky(B)
+
+  out &lt;span style=&#34;color: #666666&#34;&gt;=&lt;/span&gt; np&lt;span style=&#34;color: #666666&#34;&gt;.&lt;/span&gt;zeros((mA &lt;span style=&#34;color: #666666&#34;&gt;*&lt;/span&gt; mB))
+
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;for&lt;/span&gt; ii &lt;span style=&#34;color: #AA22FF; font-weight: bold&#34;&gt;in&lt;/span&gt; &lt;span style=&#34;color: #008000&#34;&gt;range&lt;/span&gt;(mA):
+    &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;for&lt;/span&gt; jj &lt;span style=&#34;color: #AA22FF; font-weight: bold&#34;&gt;in&lt;/span&gt; &lt;span style=&#34;color: #008000&#34;&gt;range&lt;/span&gt;(ii &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;):
+      &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;for&lt;/span&gt; hh &lt;span style=&#34;color: #AA22FF; font-weight: bold&#34;&gt;in&lt;/span&gt; &lt;span style=&#34;color: #008000&#34;&gt;range&lt;/span&gt;(mB):
+        &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;for&lt;/span&gt; kk &lt;span style=&#34;color: #AA22FF; font-weight: bold&#34;&gt;in&lt;/span&gt; &lt;span style=&#34;color: #008000&#34;&gt;range&lt;/span&gt;(hh &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color: #666666&#34;&gt;1&lt;/span&gt;):
+          out[mB &lt;span style=&#34;color: #666666&#34;&gt;*&lt;/span&gt; ii &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; hh] &lt;span style=&#34;color: #666666&#34;&gt;+=&lt;/span&gt; L_a[ii, jj] &lt;span style=&#34;color: #666666&#34;&gt;*&lt;/span&gt; L_b[hh, kk] &lt;span style=&#34;color: #666666&#34;&gt;*&lt;/span&gt; e[mB &lt;span style=&#34;color: #666666&#34;&gt;*&lt;/span&gt; jj &lt;span style=&#34;color: #666666&#34;&gt;+&lt;/span&gt; kk]
+
+  &lt;span style=&#34;color: #008000; font-weight: bold&#34;&gt;return&lt;/span&gt; out
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Obviously, this would be pretty slow to run in standard python. In the tested implementation I used &lt;a href=&#34;https://numba.pydata.org/&#34;&gt;Numba&lt;/a&gt;, which can do explicit loops efficiently.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;For the sake of comparison, all of the test functions below are compiled with Numba.&lt;/span&gt; 
+&lt;/p&gt;
+
+&lt;h2 id=&#34;evaluation:a1555d59ae587cdf813d543d9fa6acc1&#34;&gt;Evaluation&lt;/h2&gt;
+
+&lt;p&gt;Let&amp;rsquo;s see how well this thing works. Throughout, we&amp;rsquo;ll use a numba version of &lt;code&gt;np.linalg.cholesky(np.kron(A, B)).dot(e)&lt;/code&gt; as a benchmark.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;#time-to-compute-inner&#34;&gt;Figure 2&lt;/a&gt; provides some information on time-to-compute. I&amp;rsquo;ve kept the size of the matrices relatively small so that the benchmark can be computed.&lt;/p&gt;
+
+&lt;figure&gt;
+&lt;label for=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;time-to-compute&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_time_usage.svg&#34;&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;time-to-compute-inner&#39;&gt;Figure 2.&lt;/span&gt; The proposed algorithm (&amp;ldquo;Loop&amp;rdquo;) provides a considerable speed-up over the benchmark and is pretty fast in absolute terms.&lt;/span&gt;
+&lt;/figure&gt;
+
+
+&lt;p&gt;From the left figure we see that the proposed algorithm quickly achieves a speed-up at all matrix sizes. As the size of the matrices increase the speed-up increases at a more-or-less linear rate.&lt;/p&gt;
+
+&lt;p&gt;The right sub-figure plots the absolute time-to-compute for the proposed algorithm in seconds. Not surprisingly, this relationship is convex at all lags. However, in absolute terms it is still pretty fast.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;#chol-kron-memory-usage&#34;&gt;Figure 3&lt;/a&gt; compares the memory requirements of the two algorithms. Due to the long time-to-compute when calculating memory usage for the benchmark case, we only did this at a few values. The memory usage statistic presented here is the maximum memory usage required by the process, as computed by the command &lt;a href=&#34;https://github.com/pythonprofilers/memory_profiler&#34;&gt;&lt;code&gt;memory_profiler.memory_usage&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;figure&gt;
+&lt;label for=&#34;memory-usage-label&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;memory-usage-label&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_memory_usage.svg&#34;&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;chol-kron-memory-usage&#39;&gt;Figure 3.&lt;/span&gt; Relative and Absolute Memory Usage.&lt;/span&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+
+&lt;p&gt;The proposed algorithm is pretty memory-efficient. With 42 variables the NumPy method already requires about 8.2 gigs of memory. Most people don&amp;rsquo;t have that kind of memory to spare! On the other hand, memory consumption of the alternative method grows at a modest (though convex) rate.&lt;/p&gt;
+
+&lt;p&gt;Finally, I tested the proposed algorithm for large-dimensional cases.&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;The benchmark is skipped here because I don&amp;rsquo;t have enough memory to do this sort of comparison.&lt;/span&gt; 
+ The results are displayed in &lt;a href=&#34;#big-mat&#34;&gt;Figure 4&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;figure&gt;
+&lt;label for=&#34;big-mat-outer&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;big-mat-outer&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;img src=&#34;https://michaelwooley.github.io/posts/solve-chol-kron-ab-e/media/chol_kron_big.svg&#34;&gt;
+&lt;span class=&#34;marginnote&#34;&gt;&lt;span style=&#39;font-weight:bold;&#39; id=&#39;big-mat&#39;&gt;Figure 4.&lt;/span&gt; Time-to-compute and memory usage for proposed algorithm (&amp;ldquo;loop&amp;rdquo;) only.&lt;/span&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+
+&lt;p&gt;First, the good: memory usage continues to climb &lt;em&gt;very&lt;/em&gt; slowly despite a huge increase in the size of matrices involved. Second, the okay: time-to-run is non-trivial at higher $n$. It also seems to pick up around $n=125$ for some reason. If you want to do sampling with this thing you better plan ahead.&lt;/p&gt;
+
+&lt;h2 id=&#34;conclusion:a1555d59ae587cdf813d543d9fa6acc1&#34;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;I&amp;rsquo;m a little bit disappointed that I couldn&amp;rsquo;t keep the time down a bit more for the larger matrices. If I had a bit more time I&amp;rsquo;d investigate pure-c versions of this procedure to see how low it can go. If you have the time and want to try that, feel free to build on my results, which I&amp;rsquo;ve posted as a &lt;a href=&#34;https://gist.github.com/michaelwooley/93892fd8a2727211e037b5b922185769&#34;&gt;gist&lt;/a&gt;.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>(Really) Tight Bounding Boxes</title>
@@ -1951,7 +2133,7 @@ We then record these coordinates in the &lt;code&gt;self.Rect.x0&lt;/code&gt; an
 &lt;/figure&gt;
 
 
-&lt;p&gt;Hello! My name is Michael Wooley. I am an economics graduate student currently searching for positions in industry. My current interests are in deep learning, numerical problems, and programming (broadly conceived). However, I am always up for learning about something new. As an economist I worked on problems in macroeconomics and public economics.&lt;/p&gt;
+&lt;p&gt;Hello! My name is Michael Wooley. I am (as of January 2018) the senior economist at Grant Thornton. My current interests are in programming (broadly conceived), numerical problems, and ui design. However, I am always up for learning about something new. In a previous life I was an academic economist working on problems in macro, labor, and public economics.&lt;/p&gt;
 
 &lt;p&gt;&lt;label for=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;&gt;&amp;#8853;&lt;/label&gt;
 &lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access named params by position&#34; class=&#34;margin-toggle&#34;/&gt;
@@ -1963,21 +2145,35 @@ Below you will find some links to my papers and projects. Please feel free to re
 
 &lt;h2 id=&#34;projects:6083a88ee3411b0d17ce02d738f69d47&#34;&gt;Projects&lt;/h2&gt;
 
-&lt;p&gt;(Mostly older at this point. Hopefully I can find the time to update this soon&amp;hellip;)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;yapij&lt;/code&gt;.&lt;/strong&gt; A lightweight python interpreter for Electron apps.
 
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Unnamed Table Reading Project&lt;/strong&gt; (Current) Check back soon for details.&lt;/li&gt;
+&lt;li&gt;A single-process, multi-thread application that requires substantially less memory to run than Jupyter-Lab (20-40MB of ram compared to &amp;gt;100MB over several processes).&lt;/li&gt;
+&lt;li&gt;Built-in magics to organize workspaces, handling of common python types (e.g. pandas dataframes) for easy use in node environment, ping-pong heartbeats.&lt;/li&gt;
+&lt;li&gt;Besides node and python: Communication with ∅MQ, packing with MessagePack.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Understanding Busines Expectations.&lt;/strong&gt; (&lt;a href=&#34;https://michaelwooley.github.io/misc/ideation-site/&#34;&gt;demo site&lt;/a&gt;) Framework for eliciting subjective probability distributions in a survey context.
+
+&lt;ul&gt;
+&lt;li&gt;Provides new tool to ask questions regarding expectations/beliefs à la Manski [2005].&lt;/li&gt;
+&lt;li&gt;Converts user drawing of curve into proper (but exact) piecewise-linear distribution. Realtime computation of summary statistics means that users know what their edits imply for, e.g., percentiles, mean, variance, etc.&lt;/li&gt;
+&lt;li&gt;Set of questions to be explored in this context is large. The proposal section of the demo site discusses a few possible applications.&lt;/li&gt;
+&lt;li&gt;Main tools: react, D3.js, redux, react-router.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;GT Macro Modeling Framework.&lt;/strong&gt; Desktop app for modeling, forecasting, and viewing macroeconomic data.
+
+&lt;ul&gt;
+&lt;li&gt;Intuitive UI for use by non-programmers: model, variable, and data management; visualization of data, forecast diagnostics, forecasts.&lt;/li&gt;
+&lt;li&gt;Numerical work (BVAR+Dynamic Factor Models, hierarchical hyperparameter selection, conditional forecasts) in python then connected to electron app via yapij (see above).&lt;/li&gt;
+&lt;li&gt;Main tools: electron, react, python (NumPy, Numba, pandas).&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/michaelwooley/gertlerKiyotaki2015&#34;&gt;&lt;strong&gt;Shooting Backwards&lt;/strong&gt;&lt;/a&gt; Developed novel solution to non-linear, non-stationary banking crisis model by Kiyotaki and Gertler (2015)
 
 &lt;ul&gt;
-&lt;li&gt;Time to solution cut 15x&lt;/li&gt;
+&lt;li&gt;Time to solution cut 15x (relative to original paper)&lt;/li&gt;
 &lt;li&gt;Used MATLAB symbolic algebra to demonstrate backwards-in-time solution a quartic polynomial with analytic solution (impossible with pen and paper)&lt;/li&gt;
 &lt;li&gt;Used spline interpolation to infer solution to inner loop.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://youtu.be/IzIUzBddGPo&#34;&gt;&lt;strong&gt;name.com.bo&lt;/strong&gt;&lt;/a&gt; A search engine for finding and buying a cutesy website name using non-standard domains (e.g. “.com.bo” is the “.com” SLD for the Bolivian country code)
-
-&lt;ul&gt;
-&lt;li&gt;Implemented efficient search over 134k words in CMU pronunciation dictionary to find phonetic matches (e.g. “Michael Wooley” &amp;rarr; michaelwoo.ly)&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 

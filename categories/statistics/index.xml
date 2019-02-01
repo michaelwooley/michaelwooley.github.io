@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Statistics on Michael Wooley&#39;s Homepage</title>
+    <link>https://michaelwooley.github.io/categories/statistics/</link>
+    <description>Recent content in Statistics on Michael Wooley&#39;s Homepage</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 24 Oct 2018 20:49:59 -0400</lastBuildDate>
+    <atom:link href="https://michaelwooley.github.io/categories/statistics/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Understanding Expections: A New Tool</title>
+      <link>https://michaelwooley.github.io/posts/understanding-business-expectations/</link>
+      <pubDate>Wed, 24 Oct 2018 20:49:59 -0400</pubDate>
+      
+      <guid>https://michaelwooley.github.io/posts/understanding-business-expectations/</guid>
+      <description>
+
+&lt;p&gt;I&amp;rsquo;ve had a microsite lurking around here for some time and I thought I&amp;rsquo;d acknowledge it as a legitimate child. The site is a proof-of-concept for questions that elicit the subjective beliefs of respondents. For example, let&amp;rsquo;s say I wanted to ask someone how much an average Uber driver makes per average hour. I could just ask you to give me an estimate like, &amp;ldquo;&lt;span&gt;$&lt;/span&gt;15.”&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;I&amp;rsquo;ve come across hugely-varying estimates. A paper by authors that included Uber employees put mean earnings at $21.07 (&lt;a href=&#34;https://web.stanford.edu/~diamondr/UberPayGap.pdf&#34; target=&#34;_blank&#34;&gt;Cook et al., 2018, Table 1&lt;/a&gt;). An &lt;a href=&#34;https://www.ridester.com/2018-survey/&#34; target=&#34;_blank&#34;&gt;independent survey by Ridester&lt;/a&gt; put the figure at $13.70 (pre-tip). I haven&amp;rsquo;t tried to ferret out the source of the disparity. It may have to do with differing normalizations of the cost of living across cities. It could also just be a survey issue.&lt;/span&gt; 
+ But think about what happens in your head when someone asks you that question. You probably weighed a lot of factors then answered with something like the mean of your beliefs. If I just ask you for a point estimate (i.e. one number) then I&amp;rsquo;m potentially leaving a lot of information concerning &lt;em&gt;the extent of your uncertainty&lt;/em&gt; on the table. Are you almost certain it is &lt;span&gt;$&lt;/span&gt;15 or do you think it could pretty much be anywhere between &lt;span&gt;$&lt;/span&gt;10 and &lt;span&gt;$&lt;/span&gt;20? Do you maybe think it is &lt;em&gt;either&lt;/em&gt; &lt;span&gt;$&lt;/span&gt;15 or &lt;span&gt;$&lt;/span&gt;17? Each of these cases generates a whole new interpretation of question response. The site demonstrates a method of capturing all of this uncertainty.&lt;/p&gt;
+
+&lt;p&gt;I encourage you to quit reading right now and check out the question so that you&amp;rsquo;ll have a better idea of what I&amp;rsquo;m talking about below:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://understanding-expectations.gitlab.io/&#34; target=&#34;_blank&#34; style=&#34;font-size:1.5em;font-style:italic;font-weight:bold;color:#7F7F56;text-decoration:none;&#34;&gt;Go to the demo site.&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;The tool allows users to draw their beliefs. From the user&amp;rsquo;s point of view, they are just drawing a line. If the user thinks that values in a certain region are relatively likely, then they give the line a higher value in that area. In regions that have probability zero (i.e. are &amp;ldquo;impossible&amp;rdquo;) the user draws the line so that it is at the bottom/zero. Each time the user updates the line they are provided with new summary statistics (e.g. mean, median, standard deviation).&lt;label for=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle sidenote-number&#34;&gt;&lt;/label&gt;
+&lt;input type=&#34;checkbox&#34; id=&#34;error: cannot access positional params by string name&#34; class=&#34;margin-toggle&#34;/&gt;
+&lt;span class=&#34;sidenote&#34;&gt;Under the hood we&amp;rsquo;re using mouse drag events to construct a piecewise-linear probability distribution, which has analytically-tractable moments.&lt;/span&gt; 
+ My hope is that users with any statistical background will be able to use this tool. They don&amp;rsquo;t need to know what&amp;rsquo;s going on under the hood. They just need to understand the basic idea that &amp;ldquo;high lines &amp;rarr; likely; low lines &amp;rarr; unlikely.&amp;rdquo;&lt;/p&gt;
+
+&lt;h3 id=&#34;business-use-cases:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Business Use Cases&lt;/h3&gt;
+
+&lt;p&gt;There&amp;rsquo;s a lot that you can do with this information in a business context.&lt;/p&gt;
+
+&lt;p&gt;One approach is to hook responses up to an automatic decision rule. This is what the (somewhat stupid) toy example does in the demo app. In short, it compares expected profits under two different prices and tells you the conditions under which it is optimal to make a price change.&lt;/p&gt;
+
+&lt;p&gt;A second use case involves communication of beliefs across a team. Suppose that we&amp;rsquo;re planning a major project. Everyone on the team has a set of tasks and we ask them how long we expect each task to take. Once the results are collected the team pow-wows and looks at the results. Are there any surprises? If so, we can use the data to narrow in on where the team members have different beliefs and, more importantly, the different pieces of information that underly those beliefs.&lt;/p&gt;
+
+&lt;h3 id=&#34;concerns-raised-by-others:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Concerns Raised by Others&lt;/h3&gt;
+
+&lt;p&gt;Let me address to points/concerns that have popped up among testers of the demo site:&lt;/p&gt;
+
+&lt;p&gt;The first issue is that the tester didn&amp;rsquo;t understand the analysis that was spat back to them after they completed the question. This may have a bit to do with my failing to adequetely explain the analysis in the text. However, in general, &lt;em&gt;question respondents need not understand the analysis that their responses are used to create.&lt;/em&gt; In many important use cases the respondent will never see the subsquent analysis, which will be carried out by an outside analyst.&lt;/p&gt;
+
+&lt;p&gt;The second issue goes like this: &amp;ldquo;I could see how this might be useful for company X because they have a pretty good idea of what they&amp;rsquo;re going to sell this year. For my company it is just too hard to tell.&amp;rdquo; I would suggest that companies in both situations could use something like this but that a company with highly uncertain sales/profits/input costs/whatever would especially benefit from it. A public company with uncertain profits can&amp;rsquo;t opt out of earnings forecasts because it is &amp;ldquo;just too hard.&amp;rdquo; They have to report something. This tool can aid in that process by making the extent and form of uncertainty more concrete and amenable to formal analysis.&lt;/p&gt;
+
+&lt;h3 id=&#34;conclusion:48fd7da105f8431a2f4c331e823d0329&#34;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;I won&amp;rsquo;t say much more about the project here. I&amp;rsquo;ve written much more about &lt;a href=&#34;https://understanding-expectations.gitlab.io/proposal&#34;&gt;use cases&lt;/a&gt; and &lt;a href=&#34;https://understanding-expectations.gitlab.io/about&#34;&gt;implementation&lt;/a&gt; on the site itself. This is very much a work in progress. Any comments or questions are appreciated.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
